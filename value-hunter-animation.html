@@ -1,0 +1,3131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Value Hunter · Animation</title>
+<style>
+  html, body { margin: 0; padding: 0; background: radial-gradient(ellipse at 30% 20%, #1a1f2e 0%, #0c0f16 60%, #05070b 100%); color: #e8f0f8; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; height: 100%; overflow: hidden; }
+  #root { position: fixed; inset: 0; }
+  /* Hide playback bar — clean auto-loop. The stage has 2 direct children: canvas-area and playback-bar. */
+  .vh-stage > div > div:nth-child(2) { display: none !important; }
+  /* Mac-style rounded corners + big shadow on the canvas itself */
+  .vh-stage > div > div:first-child > div {
+    border-radius: 12px !important;
+    box-shadow:
+      0 0 0 0.5px rgba(255,255,255,0.08),
+      0 30px 80px rgba(0,0,0,0.6),
+      0 10px 30px rgba(0,0,0,0.4) !important;
+  }
+  /* Desktop ambience — subtle noise/grain layer behind the window */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle at 70% 80%, rgba(0,230,118,0.04) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script>
+window.addEventListener('error', (e) => {
+  const r = document.getElementById('root');
+  if (r && (!r.firstChild || r.firstChild.tagName === 'PRE')) {
+    r.innerHTML = '<pre style="color:#ff5252;padding:20px;font-family:monospace;white-space:pre-wrap;font-size:11px;">' + (e.error && e.error.stack || e.message) + '</pre>';
+  }
+});
+</script>
+
+<script type="text/babel" data-presets="env,react">
+
+// animations.jsx
+// Reusable animation starter: Stage, Timeline, Sprite, easing helpers.
+// Usage (in an HTML file that loads React + Babel):
+//
+//   <Stage width={1280} height={720} duration={10} background="#f6f4ef">
+//     <MyScene />
+//   </Stage>
+//
+// Inside <Stage>, any child can call useTime() to read the current
+// playhead (seconds). Or wrap content in <Sprite start={1} end={4}>...</Sprite>
+// to only render during that window -- children receive a `localTime` and
+// `progress` via the useSprite() hook.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Easing functions (hand-rolled, Popmotion-style) ─────────────────────────
+// All easings take t ∈ [0,1] and return eased t ∈ [0,1] (may overshoot for back/elastic).
+const Easing = {
+  linear: (t) => t,
+
+  // Quad
+  easeInQuad:    (t) => t * t,
+  easeOutQuad:   (t) => t * (2 - t),
+  easeInOutQuad: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+
+  // Cubic
+  easeInCubic:    (t) => t * t * t,
+  easeOutCubic:   (t) => (--t) * t * t + 1,
+  easeInOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1),
+
+  // Quart
+  easeInQuart:    (t) => t * t * t * t,
+  easeOutQuart:   (t) => 1 - (--t) * t * t * t,
+  easeInOutQuart: (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t),
+
+  // Expo
+  easeInExpo:  (t) => (t === 0 ? 0 : Math.pow(2, 10 * (t - 1))),
+  easeOutExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+  easeInOutExpo: (t) => {
+    if (t === 0) return 0;
+    if (t === 1) return 1;
+    if (t < 0.5) return 0.5 * Math.pow(2, 20 * t - 10);
+    return 1 - 0.5 * Math.pow(2, -20 * t + 10);
+  },
+
+  // Sine
+  easeInSine:    (t) => 1 - Math.cos((t * Math.PI) / 2),
+  easeOutSine:   (t) => Math.sin((t * Math.PI) / 2),
+  easeInOutSine: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
+
+  // Back (overshoot)
+  easeOutBack: (t) => {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  },
+  easeInBack: (t) => {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return c3 * t * t * t - c1 * t * t;
+  },
+  easeInOutBack: (t) => {
+    const c1 = 1.70158, c2 = c1 * 1.525;
+    return t < 0.5
+      ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
+      : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
+  },
+
+  // Elastic
+  easeOutElastic: (t) => {
+    const c4 = (2 * Math.PI) / 3;
+    if (t === 0) return 0;
+    if (t === 1) return 1;
+    return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+  },
+};
+
+// ── Core interpolation helpers ──────────────────────────────────────────────
+
+// Clamp a value to [min, max]
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// interpolate([0, 0.5, 1], [0, 100, 50], ease?) -> fn(t)
+// Popmotion-style: linearly maps t across input keyframes to output values,
+// with optional easing per segment (single fn or array of fns).
+function interpolate(input, output, ease = Easing.linear) {
+  return (t) => {
+    if (t <= input[0]) return output[0];
+    if (t >= input[input.length - 1]) return output[output.length - 1];
+    for (let i = 0; i < input.length - 1; i++) {
+      if (t >= input[i] && t <= input[i + 1]) {
+        const span = input[i + 1] - input[i];
+        const local = span === 0 ? 0 : (t - input[i]) / span;
+        const easeFn = Array.isArray(ease) ? (ease[i] || Easing.linear) : ease;
+        const eased = easeFn(local);
+        return output[i] + (output[i + 1] - output[i]) * eased;
+      }
+    }
+    return output[output.length - 1];
+  };
+}
+
+// animate({from, to, start, end, ease})(t) — simpler single-segment tween.
+// Returns `from` before `start`, `to` after `end`.
+function animate({ from = 0, to = 1, start = 0, end = 1, ease = Easing.easeInOutCubic }) {
+  return (t) => {
+    if (t <= start) return from;
+    if (t >= end) return to;
+    const local = (t - start) / (end - start);
+    return from + (to - from) * ease(local);
+  };
+}
+
+// ── Timeline context ────────────────────────────────────────────────────────
+
+const TimelineContext = React.createContext({ time: 0, duration: 10, playing: false });
+
+const useTime = () => React.useContext(TimelineContext).time;
+const useTimeline = () => React.useContext(TimelineContext);
+
+// ── Sprite ──────────────────────────────────────────────────────────────────
+// Renders children only when the playhead is inside [start, end]. Provides
+// a sub-context with `localTime` (seconds since start) and `progress` (0..1).
+//
+//   <Sprite start={2} end={5}>
+//     {({ localTime, progress }) => <Thing x={progress * 100} />}
+//   </Sprite>
+//
+// Or as a plain wrapper — children can call useSprite() themselves.
+
+const SpriteContext = React.createContext({ localTime: 0, progress: 0, duration: 0 });
+const useSprite = () => React.useContext(SpriteContext);
+
+function Sprite({ start = 0, end = Infinity, children, keepMounted = false }) {
+  const { time } = useTimeline();
+  const visible = time >= start && time <= end;
+  if (!visible && !keepMounted) return null;
+
+  const duration = end - start;
+  const localTime = Math.max(0, time - start);
+  const progress = duration > 0 && isFinite(duration)
+    ? clamp(localTime / duration, 0, 1)
+    : 0;
+
+  const value = { localTime, progress, duration, visible };
+
+  return (
+    <SpriteContext.Provider value={value}>
+      {typeof children === 'function' ? children(value) : children}
+    </SpriteContext.Provider>
+  );
+}
+
+// ── Sample sprite components ────────────────────────────────────────────────
+
+// TextSprite: fades/slides text in on entry, holds, then fades out on exit.
+// Props: text, x, y, size, color, font, entryDur, exitDur, align
+function TextSprite({
+  text,
+  x = 0, y = 0,
+  size = 48,
+  color = '#111',
+  font = 'Inter, system-ui, sans-serif',
+  weight = 600,
+  entryDur = 0.45,
+  exitDur = 0.35,
+  entryEase = Easing.easeOutBack,
+  exitEase = Easing.easeInCubic,
+  align = 'left',
+  letterSpacing = '-0.01em',
+}) {
+  const { localTime, duration } = useSprite();
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let ty = 0;
+
+  if (localTime < entryDur) {
+    const t = entryEase(clamp(localTime / entryDur, 0, 1));
+    opacity = t;
+    ty = (1 - t) * 16;
+  } else if (localTime > exitStart) {
+    const t = exitEase(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    ty = -t * 8;
+  }
+
+  const translateX = align === 'center' ? '-50%' : align === 'right' ? '-100%' : '0';
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      transform: `translate(${translateX}, ${ty}px)`,
+      opacity,
+      fontFamily: font,
+      fontSize: size,
+      fontWeight: weight,
+      color,
+      letterSpacing,
+      whiteSpace: 'pre',
+      lineHeight: 1.1,
+      willChange: 'transform, opacity',
+    }}>
+      {text}
+    </div>
+  );
+}
+
+// ImageSprite: scales + fades in; optional Ken Burns drift during hold.
+function ImageSprite({
+  src,
+  x = 0, y = 0,
+  width = 400, height = 300,
+  entryDur = 0.6,
+  exitDur = 0.4,
+  kenBurns = false,
+  kenBurnsScale = 1.08,
+  radius = 12,
+  fit = 'cover',
+  placeholder = null, // {label: string} for striped placeholder
+}) {
+  const { localTime, duration } = useSprite();
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let scale = 1;
+
+  if (localTime < entryDur) {
+    const t = Easing.easeOutCubic(clamp(localTime / entryDur, 0, 1));
+    opacity = t;
+    scale = 0.96 + 0.04 * t;
+  } else if (localTime > exitStart) {
+    const t = Easing.easeInCubic(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    scale = (kenBurns ? kenBurnsScale : 1) + 0.02 * t;
+  } else if (kenBurns) {
+    const holdSpan = exitStart - entryDur;
+    const holdT = holdSpan > 0 ? (localTime - entryDur) / holdSpan : 0;
+    scale = 1 + (kenBurnsScale - 1) * holdT;
+  }
+
+  const content = placeholder ? (
+    <div style={{
+      width: '100%', height: '100%',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'repeating-linear-gradient(135deg, #e9e6df 0 10px, #dcd8cf 10px 20px)',
+      color: '#6b6458',
+      fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+      fontSize: 13,
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase',
+    }}>
+      {placeholder.label || 'image'}
+    </div>
+  ) : (
+    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: fit, display: 'block' }} />
+  );
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      width, height,
+      opacity,
+      transform: `scale(${scale})`,
+      transformOrigin: 'center',
+      borderRadius: radius,
+      overflow: 'hidden',
+      willChange: 'transform, opacity',
+    }}>
+      {content}
+    </div>
+  );
+}
+
+// RectSprite: simple rectangle that animates position/size/color via props.
+// Useful demo primitive — takes a `render` fn for per-frame customization.
+function RectSprite({
+  x = 0, y = 0,
+  width = 100, height = 100,
+  color = '#111',
+  radius = 8,
+  entryDur = 0.4,
+  exitDur = 0.3,
+  render, // optional: (ctx) => style overrides
+}) {
+  const spriteCtx = useSprite();
+  const { localTime, duration } = spriteCtx;
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let scale = 1;
+
+  if (localTime < entryDur) {
+    const t = Easing.easeOutBack(clamp(localTime / entryDur, 0, 1));
+    opacity = clamp(localTime / entryDur, 0, 1);
+    scale = 0.4 + 0.6 * t;
+  } else if (localTime > exitStart) {
+    const t = Easing.easeInQuad(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    scale = 1 - 0.15 * t;
+  }
+
+  const overrides = render ? render(spriteCtx) : {};
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      width, height,
+      background: color,
+      borderRadius: radius,
+      opacity,
+      transform: `scale(${scale})`,
+      transformOrigin: 'center',
+      willChange: 'transform, opacity',
+      ...overrides,
+    }} />
+  );
+}
+
+
+function Stage({
+  width = 1280,
+  height = 720,
+  duration = 10,
+  background = '#f6f4ef',
+  fps = 60,
+  loop = true,
+  autoplay = true,
+  persistKey = 'animstage',
+  children,
+}) {
+  const [time, setTime] = React.useState(() => {
+    try {
+      const v = parseFloat(localStorage.getItem(persistKey + ':t') || '0');
+      return isFinite(v) ? clamp(v, 0, duration) : 0;
+    } catch { return 0; }
+  });
+  const [playing, setPlaying] = React.useState(autoplay);
+  const [hoverTime, setHoverTime] = React.useState(null);
+  const [scale, setScale] = React.useState(1);
+
+  const stageRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const rafRef = React.useRef(null);
+  const lastTsRef = React.useRef(null);
+
+  // Persist playhead
+  React.useEffect(() => {
+    try { localStorage.setItem(persistKey + ':t', String(time)); } catch {}
+  }, [time, persistKey]);
+
+  // Auto-scale to fit viewport
+  React.useEffect(() => {
+    if (!stageRef.current) return;
+    const el = stageRef.current;
+    const measure = () => {
+      const barH = 44; // playback bar height
+      const s = Math.min(
+        el.clientWidth / width,
+        (el.clientHeight - barH) / height
+      );
+      setScale(Math.max(0.05, s));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [width, height]);
+
+  // Animation loop
+  React.useEffect(() => {
+    if (!playing) {
+      lastTsRef.current = null;
+      return;
+    }
+    const step = (ts) => {
+      if (lastTsRef.current == null) lastTsRef.current = ts;
+      const dt = (ts - lastTsRef.current) / 1000;
+      lastTsRef.current = ts;
+      setTime((t) => {
+        let next = t + dt;
+        if (next >= duration) {
+          if (loop) next = next % duration;
+          else { next = duration; setPlaying(false); }
+        }
+        return next;
+      });
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      lastTsRef.current = null;
+    };
+  }, [playing, duration, loop]);
+
+  // Keyboard: space = play/pause, ← → = seek
+  React.useEffect(() => {
+    const onKey = (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setPlaying(p => !p);
+      } else if (e.code === 'ArrowLeft') {
+        setTime(t => clamp(t - (e.shiftKey ? 1 : 0.1), 0, duration));
+      } else if (e.code === 'ArrowRight') {
+        setTime(t => clamp(t + (e.shiftKey ? 1 : 0.1), 0, duration));
+      } else if (e.key === '0' || e.code === 'Home') {
+        setTime(0);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [duration]);
+
+  const displayTime = hoverTime != null ? hoverTime : time;
+
+  const ctxValue = React.useMemo(
+    () => ({ time: displayTime, duration, playing, setTime, setPlaying }),
+    [displayTime, duration, playing]
+  );
+
+  return (
+    <div
+      ref={stageRef}
+      style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center',
+        background: '#0a0a0a',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      {/* Canvas area — vertically centered in remaining space */}
+      <div style={{
+        flex: 1,
+        width: '100%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+        minHeight: 0,
+      }}>
+        <div
+          ref={canvasRef}
+          style={{
+            width, height,
+            background,
+            position: 'relative',
+            transform: `scale(${scale})`,
+            transformOrigin: 'center',
+            flexShrink: 0,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            overflow: 'hidden',
+          }}
+        >
+          <TimelineContext.Provider value={ctxValue}>
+            {children}
+          </TimelineContext.Provider>
+        </div>
+      </div>
+
+      {/* Playback bar — stacked below canvas, never overlapping */}
+      <PlaybackBar
+        time={displayTime}
+        actualTime={time}
+        duration={duration}
+        playing={playing}
+        onPlayPause={() => setPlaying(p => !p)}
+        onReset={() => { setTime(0); }}
+        onSeek={(t) => setTime(t)}
+        onHover={(t) => setHoverTime(t)}
+      />
+    </div>
+  );
+}
+
+// ── Playback bar ────────────────────────────────────────────────────────────
+// Play/pause, return-to-begin, scrub track, time display.
+// Uses fixed-width time fields so layout doesn't thrash.
+
+function PlaybackBar({ time, duration, playing, onPlayPause, onReset, onSeek, onHover }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+
+  const timeFromEvent = React.useCallback((e) => {
+    const rect = trackRef.current.getBoundingClientRect();
+    const x = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+    return x * duration;
+  }, [duration]);
+
+  const onTrackMove = (e) => {
+    if (!trackRef.current) return;
+    const t = timeFromEvent(e);
+    if (dragging) {
+      onSeek(t);
+    } else {
+      onHover(t);
+    }
+  };
+
+  const onTrackLeave = () => {
+    if (!dragging) onHover(null);
+  };
+
+  const onTrackDown = (e) => {
+    setDragging(true);
+    const t = timeFromEvent(e);
+    onSeek(t);
+    onHover(null);
+  };
+
+  React.useEffect(() => {
+    if (!dragging) return;
+    const onUp = () => setDragging(false);
+    const onMove = (e) => {
+      if (!trackRef.current) return;
+      const t = timeFromEvent(e);
+      onSeek(t);
+    };
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mousemove', onMove);
+    return () => {
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('mousemove', onMove);
+    };
+  }, [dragging, timeFromEvent, onSeek]);
+
+  const pct = duration > 0 ? (time / duration) * 100 : 0;
+  const fmt = (t) => {
+    const total = Math.max(0, t);
+    const m = Math.floor(total / 60);
+    const s = Math.floor(total % 60);
+    const cs = Math.floor((total * 100) % 100);
+    return `${String(m).padStart(1, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+  };
+
+  const mono = 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace';
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '8px 16px',
+      background: 'rgba(20,20,20,0.92)',
+      borderTop: '1px solid rgba(255,255,255,0.08)',
+      width: '100%',
+      maxWidth: 680,
+      alignSelf: 'center',
+
+      borderRadius: 8,
+      color: '#f6f4ef',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      userSelect: 'none',
+      flexShrink: 0,
+    }}>
+      <IconButton onClick={onReset} title="Return to start (0)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 2v10M12 2L5 7l7 5V2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
+        </svg>
+      </IconButton>
+      <IconButton onClick={onPlayPause} title="Play/pause (space)">
+        {playing ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="3" y="2" width="3" height="10" fill="currentColor"/>
+            <rect x="8" y="2" width="3" height="10" fill="currentColor"/>
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M3 2l9 5-9 5V2z" fill="currentColor"/>
+          </svg>
+        )}
+      </IconButton>
+
+      {/* Current time: fixed width so it doesn't thrash */}
+      <div style={{
+        fontFamily: mono,
+        fontSize: 12,
+        fontVariantNumeric: 'tabular-nums',
+        width: 64, textAlign: 'right',
+        color: '#f6f4ef',
+      }}>
+        {fmt(time)}
+      </div>
+
+      {/* Scrub track */}
+      <div
+        ref={trackRef}
+        onMouseMove={onTrackMove}
+        onMouseLeave={onTrackLeave}
+        onMouseDown={onTrackDown}
+        style={{
+          flex: 1,
+          height: 22,
+          position: 'relative',
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center',
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          left: 0, right: 0, height: 4,
+          background: 'rgba(255,255,255,0.12)',
+          borderRadius: 2,
+        }}/>
+        <div style={{
+          position: 'absolute',
+          left: 0, width: `${pct}%`, height: 4,
+          background: 'oklch(72% 0.12 250)',
+          borderRadius: 2,
+        }}/>
+        <div style={{
+          position: 'absolute',
+          left: `${pct}%`, top: '50%',
+          width: 12, height: 12,
+          marginLeft: -6, marginTop: -6,
+          background: '#fff',
+          borderRadius: 6,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+        }}/>
+      </div>
+
+      {/* Duration: fixed width */}
+      <div style={{
+        fontFamily: mono,
+        fontSize: 12,
+        fontVariantNumeric: 'tabular-nums',
+        width: 64, textAlign: 'left',
+        color: 'rgba(246,244,239,0.55)',
+      }}>
+        {fmt(duration)}
+      </div>
+    </div>
+  );
+}
+
+function IconButton({ children, onClick, title }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 28, height: 28,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: hover ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 6,
+        color: '#f6f4ef',
+        cursor: 'pointer',
+        padding: 0,
+        transition: 'background 120ms',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+
+Object.assign(window, {
+  Easing, interpolate, animate, clamp,
+  TimelineContext, useTime, useTimeline,
+  Sprite, SpriteContext, useSprite,
+  TextSprite, ImageSprite, RectSprite,
+  Stage, PlaybackBar,
+});
+
+
+// Shared theme + small visual primitives for the Value Hunter animation
+const VH = {
+  bg: '#0a0e14',
+  bg2: '#111820',
+  bg3: '#161f2b',
+  green: '#00e676',
+  greenDim: '#00b84d',
+  greenGlow: 'rgba(0, 230, 118, 0.35)',
+  text: '#e8f0f8',
+  muted: '#7a8fa6',
+  red: '#ff5252',
+  amber: '#ffb74d',
+  border: 'rgba(0, 230, 118, 0.22)',
+  borderSoft: 'rgba(255,255,255,0.06)',
+  mono: "'JetBrains Mono', 'SF Mono', ui-monospace, monospace",
+  sans: "'Segoe UI', system-ui, -apple-system, sans-serif",
+};
+
+// Seeded deterministic random (so frames are stable)
+function mulberry32(seed) {
+  return function () {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// A subtle grid backdrop
+function GridBg({ opacity = 0.5, color = 'rgba(0,230,118,0.06)', spacing = 40 }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      backgroundImage:
+        `linear-gradient(${color} 1px, transparent 1px),
+         linear-gradient(90deg, ${color} 1px, transparent 1px)`,
+      backgroundSize: `${spacing}px ${spacing}px`,
+      opacity,
+      pointerEvents: 'none',
+    }}/>
+  );
+}
+
+// Scanline-ish radial vignette
+function Vignette({ color = 'rgba(0,230,118,0.08)' }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: `radial-gradient(ellipse at center, ${color} 0%, transparent 60%)`,
+      pointerEvents: 'none',
+    }}/>
+  );
+}
+
+// Pulsing dot (looks like a "live" indicator)
+function PulseDot({ color = VH.green, size = 8, speed = 1.2 }) {
+  const t = useTime();
+  const pulse = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 / speed);
+  return (
+    <div style={{
+      width: size, height: size,
+      borderRadius: '50%',
+      background: color,
+      boxShadow: `0 0 ${6 + pulse * 10}px ${color}`,
+      opacity: 0.6 + pulse * 0.4,
+      display: 'inline-block',
+    }}/>
+  );
+}
+
+// Monospace ticker of random digits (used for "computing" states)
+function DigitTicker({ width = 60, seed = 1, speed = 8, color = VH.muted, size = 12 }) {
+  const t = useTime();
+  const rnd = React.useMemo(() => mulberry32(seed), [seed]);
+  const n = Math.floor(t * speed);
+  const vals = React.useMemo(() => {
+    const arr = [];
+    for (let i = 0; i < 20; i++) arr.push(Math.floor(rnd() * 10));
+    return arr;
+  }, [rnd]);
+  const digits = [];
+  for (let i = 0; i < 8; i++) {
+    digits.push(vals[(n + i * 3 + seed) % 20]);
+  }
+  return (
+    <span style={{
+      fontFamily: VH.mono,
+      color, fontSize: size,
+      letterSpacing: '0.1em',
+      fontVariantNumeric: 'tabular-nums',
+    }}>
+      {digits.join('')}
+    </span>
+  );
+}
+
+// Small label pill
+function Pill({ children, color = VH.green, bg, border = true }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      fontFamily: VH.mono,
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: '0.18em',
+      textTransform: 'uppercase',
+      color,
+      padding: '3px 8px',
+      border: border ? `1px solid ${color}` : 'none',
+      background: bg || 'transparent',
+      borderRadius: 3,
+      whiteSpace: 'nowrap',
+    }}>
+      {children}
+    </span>
+  );
+}
+
+Object.assign(window, { VH, mulberry32, GridBg, Vignette, PulseDot, DigitTicker, Pill });
+
+// Scene 1: Data collection (0–9s)
+// A "control room" dashboard: multiple data sources firing streams of info.
+// Cards show stylized source names ("STATS ENGINE", "SHARP ODDS", etc.),
+// each pumping data packets toward center.
+
+function Scene1_Collection({ start = 0, end = 9 }) {
+  return (
+    <Sprite start={start} end={end}>
+      {({ localTime, duration }) => <Scene1Inner localTime={localTime} duration={duration} />}
+    </Sprite>
+  );
+}
+
+function Scene1Inner({ localTime, duration }) {
+  // Fade scene in/out
+  const opacity = interpolate([0, 0.4, duration - 0.5, duration], [0, 1, 1, 0], Easing.easeOutCubic)(localTime);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity }}>
+      <GridBg opacity={0.4}/>
+
+      {/* Header */}
+      <S1Header localTime={localTime}/>
+
+      {/* 6 source cards arranged around the viewport */}
+      <SourceCard x={60}   y={120} w={280} label="STATS ENGINE"     sub="xG · xGA · shots · possession" seed={1} delay={0.2} localTime={localTime} status="LIVE"/>
+      <SourceCard x={860}  y={120} w={280} label="SHARP ODDS FEED"  sub="sharp lines · CLV reference"   seed={2} delay={0.5} localTime={localTime} status="SYNC"/>
+      <SourceCard x={60}   y={320} w={280} label="LINEUPS / INJURY" sub="starters · suspensions"        seed={3} delay={0.9} localTime={localTime} status="LIVE"/>
+      <SourceCard x={860}  y={320} w={280} label="MARKET DEPTH"     sub="opening → current · movement"  seed={4} delay={1.2} localTime={localTime} status="LIVE"/>
+      <SourceCard x={60}   y={520} w={280} label="REFEREE PROFILE"  sub="cards / 90 · penalty rate"     seed={5} delay={1.6} localTime={localTime} status="LOAD"/>
+      <SourceCard x={860}  y={520} w={280} label="WEATHER / PITCH"  sub="rain · wind · surface"         seed={6} delay={1.9} localTime={localTime} status="SYNC"/>
+
+      {/* Central "core" that receives data */}
+      <DataCore localTime={localTime} />
+
+      {/* Flying packets from sources -> center */}
+      <DataFlow localTime={localTime} sceneDuration={duration} />
+
+      {/* Match ticker across bottom */}
+      <MatchTicker localTime={localTime} />
+
+      <Vignette/>
+    </div>
+  );
+}
+
+function S1Header({ localTime }) {
+  const titleOpacity = interpolate([0, 0.5], [0, 1], Easing.easeOutCubic)(localTime);
+  return (
+    <div style={{ position: 'absolute', top: 36, left: 0, right: 0, textAlign: 'center', opacity: titleOpacity }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <PulseDot size={7} speed={1}/>
+        <span style={{
+          fontFamily: VH.mono, fontSize: 11, letterSpacing: '0.3em',
+          color: VH.green, fontWeight: 700,
+        }}>
+          PHASE&nbsp;01&nbsp;//&nbsp;DATA&nbsp;COLLECTION
+        </span>
+      </div>
+      <div style={{
+        fontFamily: VH.sans, fontSize: 30, fontWeight: 800, color: VH.text,
+        letterSpacing: '-0.02em',
+      }}>
+        Escaneando <span style={{ color: VH.green }}>847 jogos</span> nas próximas 24h
+      </div>
+    </div>
+  );
+}
+
+function SourceCard({ x, y, w, label, sub, seed, delay, localTime, status }) {
+  const t = Math.max(0, localTime - delay);
+  const entry = Easing.easeOutBack(clamp(t / 0.5, 0, 1));
+  const opacity = clamp(t / 0.4, 0, 1);
+
+  // Pulse a "transmit" ring every ~1.2s after entry
+  const pulseT = Math.max(0, localTime - delay - 0.6);
+  const pulsePhase = (pulseT % 1.4) / 1.4;
+  const ringOpacity = (1 - pulsePhase) * 0.5;
+  const ringScale = 1 + pulsePhase * 0.4;
+
+  return (
+    <div style={{
+      position: 'absolute', left: x, top: y, width: w,
+      transform: `translateY(${(1 - entry) * 20}px) scale(${0.9 + entry * 0.1})`,
+      opacity,
+      fontFamily: VH.sans,
+    }}>
+      {/* Transmit pulse ring */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        border: `1px solid ${VH.green}`,
+        borderRadius: 8,
+        opacity: ringOpacity,
+        transform: `scale(${ringScale})`,
+        pointerEvents: 'none',
+      }}/>
+      <div style={{
+        background: VH.bg2,
+        border: `1px solid ${VH.border}`,
+        borderRadius: 8,
+        padding: '14px 16px',
+        boxShadow: `0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,230,118,0.04)`,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{
+            fontFamily: VH.mono, fontSize: 10, color: VH.green, fontWeight: 700,
+            letterSpacing: '0.18em',
+          }}>{label}</div>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontFamily: VH.mono, fontSize: 9, color: status === 'LIVE' ? VH.green : VH.muted,
+            letterSpacing: '0.15em',
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%',
+              background: status === 'LIVE' ? VH.green : VH.muted,
+              boxShadow: status === 'LIVE' ? `0 0 6px ${VH.green}` : 'none',
+            }}/>
+            {status}
+          </span>
+        </div>
+        <div style={{ fontSize: 11, color: VH.muted, marginBottom: 10, fontFamily: VH.mono }}>
+          {sub}
+        </div>
+        <SparklineRow seed={seed} time={localTime}/>
+        <div style={{
+          marginTop: 8,
+          display: 'flex', justifyContent: 'space-between',
+          fontFamily: VH.mono, fontSize: 10, color: VH.muted,
+        }}>
+          <span>pkts <DigitTicker seed={seed * 3} size={10} speed={10}/></span>
+          <span style={{ color: VH.green }}>● {Math.floor(200 + (localTime * 37 + seed * 29) % 600)}ms</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SparklineRow({ seed, time }) {
+  const rnd = React.useMemo(() => mulberry32(seed * 101), [seed]);
+  const basePoints = React.useMemo(() => {
+    const arr = [];
+    for (let i = 0; i < 24; i++) arr.push(20 + rnd() * 20);
+    return arr;
+  }, [rnd]);
+
+  // Shift sparkline over time to feel "live"
+  const shift = Math.floor(time * 6) % 24;
+  const pts = basePoints.map((_, i) => basePoints[(i + shift) % 24]);
+  const w = 248, h = 36;
+  const step = w / (pts.length - 1);
+  const path = pts.map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - v).toFixed(1)}`).join(' ');
+
+  return (
+    <svg width={w} height={h} style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id={`sg${seed}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={VH.green} stopOpacity="0.35"/>
+          <stop offset="100%" stopColor={VH.green} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d={`${path} L${w},${h} L0,${h} Z`} fill={`url(#sg${seed})`}/>
+      <path d={path} fill="none" stroke={VH.green} strokeWidth="1.5"/>
+    </svg>
+  );
+}
+
+function DataCore({ localTime }) {
+  const opacity = interpolate([0.6, 1.2], [0, 1], Easing.easeOutCubic)(localTime);
+  const pulse = 0.5 + 0.5 * Math.sin(localTime * 3);
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: '50%', top: 340,
+      transform: 'translate(-50%, 0)',
+      opacity,
+      textAlign: 'center',
+    }}>
+      {/* Outer pulse rings */}
+      {[0, 0.4, 0.8].map(o => {
+        const phase = ((localTime + o) % 1.8) / 1.8;
+        return (
+          <div key={o} style={{
+            position: 'absolute', left: '50%', top: 72,
+            width: 120, height: 120,
+            marginLeft: -60, marginTop: -60,
+            border: `1px solid ${VH.green}`,
+            borderRadius: '50%',
+            opacity: (1 - phase) * 0.4,
+            transform: `scale(${1 + phase * 1.5})`,
+          }}/>
+        );
+      })}
+      {/* Core disc */}
+      <div style={{
+        width: 120, height: 120,
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${VH.green} 0%, ${VH.greenDim} 40%, ${VH.bg2} 80%)`,
+        boxShadow: `0 0 ${30 + pulse * 40}px ${VH.greenGlow}, inset 0 0 30px rgba(0,0,0,0.6)`,
+        margin: '12px auto 0',
+        border: `2px solid ${VH.green}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: VH.mono, color: '#000', fontWeight: 800, fontSize: 14,
+        letterSpacing: '0.1em',
+      }}>
+        CORE
+      </div>
+      <div style={{
+        fontFamily: VH.mono, fontSize: 11, color: VH.muted,
+        marginTop: 16, letterSpacing: '0.2em',
+      }}>
+        INGESTING / <DigitTicker seed={99} speed={15} size={11} color={VH.text}/> ROWS
+      </div>
+    </div>
+  );
+}
+
+// Data packets flying from sources to center
+function DataFlow({ localTime, sceneDuration }) {
+  // Source anchor points (right edge of left cards, left edge of right cards)
+  const sources = [
+    { x: 340, y: 180 }, // card 1
+    { x: 860, y: 180 }, // card 2
+    { x: 340, y: 380 }, // card 3
+    { x: 860, y: 380 }, // card 4
+    { x: 340, y: 580 }, // card 5
+    { x: 860, y: 580 }, // card 6
+  ];
+  const target = { x: 600, y: 400 };
+
+  // Labels that fly from each source
+  const labels = [
+    ['xG 1.82', 'xGA 0.94', 'SOT 6.1', 'POSS 62%'],
+    ['1.73 →1.68', '2.35 →2.42', 'FAIR 1.71', 'CLV +2.1%'],
+    ['GK OUT', 'ST BACK', '11 CONFIRM', '-2 RESTED'],
+    ['OPEN 2.10', 'CURR 1.92', 'Δ -8.6%', 'SHARPS ↓'],
+    ['4.3 YC/90', 'PEN 0.22', 'HOME +0.4', 'STRICT'],
+    ['RAIN 40%', 'WIND 12km', 'DRY PITCH', '17°C'],
+  ];
+
+  const packets = [];
+  sources.forEach((src, si) => {
+    for (let i = 0; i < 4; i++) {
+      const birthTime = 1.2 + si * 0.15 + i * 1.1;
+      if (localTime < birthTime) continue;
+      const travelDur = 1.4;
+      const t = (localTime - birthTime) / travelDur;
+      if (t > 1.1) continue;
+
+      const eased = Easing.easeInOutCubic(clamp(t, 0, 1));
+      const x = src.x + (target.x - src.x) * eased;
+      const y = src.y + (target.y - src.y) * eased;
+      const opacity = t < 0.2 ? t / 0.2 : t > 0.8 ? (1 - t) / 0.2 : 1;
+
+      packets.push({ key: `${si}-${i}`, x, y, opacity, label: labels[si][i] });
+    }
+  });
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      {packets.map(p => (
+        <div key={p.key} style={{
+          position: 'absolute',
+          left: p.x, top: p.y,
+          transform: 'translate(-50%, -50%)',
+          opacity: clamp(p.opacity, 0, 1),
+          fontFamily: VH.mono,
+          fontSize: 10,
+          color: VH.green,
+          background: 'rgba(0, 230, 118, 0.1)',
+          border: `1px solid ${VH.border}`,
+          borderRadius: 3,
+          padding: '2px 6px',
+          whiteSpace: 'nowrap',
+          letterSpacing: '0.05em',
+          boxShadow: `0 0 8px rgba(0,230,118,0.25)`,
+        }}>
+          {p.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MatchTicker({ localTime }) {
+  const matches = [
+    'MAN CITY vs ARSENAL',
+    'REAL MADRID vs ATLÉTICO',
+    'FLAMENGO vs PALMEIRAS',
+    'BAYERN vs DORTMUND',
+    'INTER vs NAPOLI',
+    'PSG vs MARSEILLE',
+    'LIVERPOOL vs CHELSEA',
+    'BARCELONA vs SEVILLA',
+    'BOTAFOGO vs FLUMINENSE',
+    'MILAN vs JUVENTUS',
+    'LEVERKUSEN vs LEIPZIG',
+    'CORINTHIANS vs SÃO PAULO',
+  ];
+  const speed = 80; // px/s
+  const offset = -(localTime * speed) % 2400;
+
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 20,
+      height: 30,
+      overflow: 'hidden',
+      borderTop: `1px solid ${VH.borderSoft}`,
+      borderBottom: `1px solid ${VH.borderSoft}`,
+      background: 'rgba(0,0,0,0.3)',
+    }}>
+      <div style={{
+        position: 'absolute',
+        left: offset, top: 0,
+        whiteSpace: 'nowrap',
+        display: 'flex', alignItems: 'center', height: '100%',
+        gap: 28,
+        fontFamily: VH.mono, fontSize: 11, color: VH.muted,
+        letterSpacing: '0.1em',
+      }}>
+        {[...matches, ...matches, ...matches].map((m, i) => (
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ color: VH.green, fontWeight: 700 }}>●</span> {m}
+            <span style={{ color: VH.greenDim }}>│</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Scene1_Collection });
+
+// Scene 2: Edge calculation — HUD/terminal style (9–18s)
+// A single terminal window computes the edge live: log lines stream in,
+// three big numbers scramble-then-lock (retail odds, fair odds, edge %),
+// final verdict line glows APPROVED.
+
+// ── Scramble helper: returns a string that scrambles toward `final` ─────
+// When t in [0, 1]: digits lock in left-to-right.
+function scrambleNumber(final, t, seed = 1) {
+  const s = final.toFixed(final < 10 ? 2 : 1);
+  const rnd = mulberry32(seed + Math.floor(t * 30));
+  let out = '';
+  const lockCount = Math.floor(t * s.length);
+  for (let i = 0; i < s.length; i++) {
+    if (i < lockCount || s[i] === '.' || s[i] === '-' || s[i] === '+' || s[i] === '%') {
+      out += s[i];
+    } else {
+      out += Math.floor(rnd() * 10);
+    }
+  }
+  return out;
+}
+
+function Scene2_EdgeCalc({ start = 9, end = 18 }) {
+  return (
+    <Sprite start={start} end={end}>
+      {({ localTime, duration }) => <Scene2Inner localTime={localTime} duration={duration}/>}
+    </Sprite>
+  );
+}
+
+function Scene2Inner({ localTime, duration }) {
+  const opacity = interpolate([0, 0.4, duration - 0.5, duration], [0, 1, 1, 0])(localTime);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity }}>
+      <GridBg opacity={0.25}/>
+
+      {/* Header — compact, terminal-style */}
+      <div style={{ position: 'absolute', top: 36, left: 0, right: 0, textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <PulseDot size={7} speed={1}/>
+          <span style={{
+            fontFamily: VH.mono, fontSize: 11, letterSpacing: '0.3em',
+            color: VH.green, fontWeight: 700,
+          }}>
+            PHASE&nbsp;02&nbsp;//&nbsp;EDGE&nbsp;DETECTION
+          </span>
+        </div>
+        <div style={{
+          fontFamily: VH.mono, fontSize: 12, color: VH.muted, letterSpacing: '0.15em',
+        }}>
+          <span style={{ color: VH.green }}>&gt;</span> edge_scanner.run(&quot;<span style={{ color: VH.text }}>Flamengo × Palmeiras · Over 9.5 escanteios</span>&quot;)
+        </div>
+      </div>
+
+      {/* Terminal window — the star of the scene */}
+      <TerminalWindow localTime={localTime}/>
+
+      <Vignette/>
+    </div>
+  );
+}
+
+// ── Terminal window — computes edge live ─────────────────────────────
+const TERM_LINES = [
+  // {t: at localTime, text: JSX-safe object}
+  { t: 0.5, text: '[init] fetching bet365.over_9p5 ...',               color: 'muted' },
+  { t: 0.9, text: '[ok]   retail_odds=2.42',                            color: 'amber', lock: 'retail' },
+  { t: 1.3, text: '[init] fetching pinnacle.over_9p5 · no_vig ...',     color: 'muted' },
+  { t: 1.8, text: '[ok]   fair_odds=2.18',                              color: 'green', lock: 'fair' },
+  { t: 2.3, text: '[calc] vig_removed=4.4%',                            color: 'muted' },
+  { t: 2.8, text: '[calc] prob_real = 1/2.42 = 0.413',                  color: 'muted', lock: 'probReal' },
+  { t: 3.3, text: '[calc] prob_fair = 1/2.18 = 0.459',                  color: 'muted', lock: 'probFair' },
+  { t: 3.9, text: '[calc] edge = (p_fair − p_real)/p_real',             color: 'muted' },
+  { t: 4.4, text: '[calc] edge = (0.459 − 0.413) / 0.413',              color: 'muted' },
+  { t: 5.0, text: '[calc] edge = +0.1114',                              color: 'green', lock: 'edge' },
+  { t: 5.6, text: '[chk]  edge > threshold(5.0%) ... true',             color: 'green' },
+  { t: 6.2, text: '[chk]  clv_positive=true · sample_n=31',             color: 'green' },
+  { t: 6.8, text: '[ok]   bet qualifies for approval',                  color: 'green' },
+];
+
+function TerminalWindow({ localTime }) {
+  const appear = clamp((localTime - 0.2) / 0.5, 0, 1);
+  // Which lines are visible
+  const visibleLines = TERM_LINES.filter(l => localTime >= l.t);
+
+  // Typewriter on the latest line
+  const latest = visibleLines[visibleLines.length - 1];
+  let displayedLast = latest?.text ?? '';
+  if (latest) {
+    const age = localTime - latest.t;
+    const typeDur = 0.25;
+    const frac = clamp(age / typeDur, 0, 1);
+    const chars = Math.floor(frac * latest.text.length);
+    displayedLast = latest.text.slice(0, chars);
+  }
+
+  // Cursor blink
+  const cursorOn = Math.floor(localTime * 2) % 2 === 0;
+
+  // Which "lock" variables have been revealed — drives side readouts
+  const locked = new Set(
+    TERM_LINES.filter(l => l.lock && localTime >= l.t + 0.3).map(l => l.lock)
+  );
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: 70, right: 70, top: 140, bottom: 70,
+      opacity: appear,
+      transform: `translateY(${(1 - appear) * 12}px)`,
+      display: 'flex',
+      gap: 18,
+      fontFamily: VH.mono,
+    }}>
+      {/* LEFT: terminal log */}
+      <div style={{
+        flex: 1.3,
+        background: 'rgba(4,8,6,0.92)',
+        border: `1px solid ${VH.green}`,
+        borderRadius: 6,
+        boxShadow: `0 0 40px rgba(0,230,118,0.12), inset 0 0 30px rgba(0,230,118,0.04)`,
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        {/* Title bar */}
+        <div style={{
+          padding: '8px 14px',
+          borderBottom: `1px solid rgba(0,230,118,0.2)`,
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: 'rgba(0,230,118,0.05)',
+        }}>
+          <div style={{ display: 'flex', gap: 5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff5f56' }}/>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffbd2e' }}/>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: VH.green }}/>
+          </div>
+          <span style={{ fontSize: 10, color: VH.muted, letterSpacing: '0.15em' }}>
+            value_hunter · edge_scanner
+          </span>
+          <span style={{ marginLeft: 'auto', fontSize: 10, color: VH.green }}>
+            ● running
+          </span>
+        </div>
+
+        {/* Scanline overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,230,118,0.03) 0, rgba(0,230,118,0.03) 1px, transparent 1px, transparent 3px)',
+          mixBlendMode: 'screen',
+        }}/>
+
+        {/* Log area */}
+        <div style={{
+          flex: 1,
+          padding: '14px 18px',
+          fontSize: 13,
+          lineHeight: 1.55,
+          color: VH.text,
+          overflow: 'hidden',
+        }}>
+          {visibleLines.slice(0, -1).map((l, i) => (
+            <LogLine key={i} line={l} typed={l.text}/>
+          ))}
+          {latest && <LogLine line={latest} typed={displayedLast} cursor={cursorOn}/>}
+        </div>
+      </div>
+
+      {/* RIGHT: big number readouts */}
+      <div style={{
+        flex: 1,
+        display: 'flex', flexDirection: 'column',
+        gap: 10,
+      }}>
+        <BigReadout
+          label="RETAIL ODDS"
+          color={VH.amber}
+          final={2.42}
+          unit="odds"
+          locked={locked.has('retail')}
+          lockT={0.9}
+          localTime={localTime}
+        />
+        <BigReadout
+          label="FAIR ODDS (NO-VIG)"
+          color={VH.green}
+          final={2.18}
+          unit="odds"
+          locked={locked.has('fair')}
+          lockT={1.8}
+          localTime={localTime}
+        />
+        <BigReadout
+          label="PROB REAL / PROB FAIR"
+          color={VH.text}
+          final={0.459}
+          probPair={{ real: 0.413, fair: 0.459 }}
+          locked={locked.has('probFair')}
+          lockT={3.3}
+          localTime={localTime}
+        />
+        <EdgeReadout
+          locked={locked.has('edge')}
+          lockT={5.0}
+          localTime={localTime}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LogLine({ line, typed, cursor }) {
+  const colorMap = {
+    muted: VH.muted,
+    amber: VH.amber,
+    green: VH.green,
+    text: VH.text,
+  };
+  const color = colorMap[line.color] || VH.text;
+  // Color the [tag] prefix separately
+  const match = /^(\[[a-z]+\])(\s+)(.*)$/i.exec(typed);
+  return (
+    <div style={{ whiteSpace: 'pre', fontVariantNumeric: 'tabular-nums' }}>
+      {match ? (
+        <>
+          <span style={{ color: VH.greenDim }}>{match[1]}</span>
+          <span>{match[2]}</span>
+          <span style={{ color }}>{match[3]}</span>
+        </>
+      ) : (
+        <span style={{ color }}>{typed}</span>
+      )}
+      {cursor && <span style={{ color: VH.green, marginLeft: 2 }}>▊</span>}
+    </div>
+  );
+}
+
+// Big scramble-lock number readout
+function BigReadout({ label, color, final, unit, locked, lockT, localTime, probPair }) {
+  // Reveal 0.5s before lockT (during typing of the log line)
+  const preT = lockT - 0.4;
+  const reveal = clamp((localTime - preT) / 0.4, 0, 1);
+  // Scramble progress 0..1 leading up to lock; then 1 after
+  const scrambleStart = lockT - 0.7;
+  const scrambleDur = 0.7;
+  let lockProgress = clamp((localTime - scrambleStart) / scrambleDur, 0, 1);
+  if (!locked && localTime < lockT) lockProgress = Math.min(lockProgress, 0.85); // don't fully lock until line fires
+  const isLocked = locked && lockProgress >= 1;
+
+  // Glow on lock
+  const glowPulse = isLocked ? (1 - Math.min(1, (localTime - lockT) / 0.8)) : 0;
+
+  // Prob pair (special 2-value readout)
+  if (probPair) {
+    const realStr = scrambleNumber(probPair.real * 100, lockProgress, 11);
+    const fairStr = scrambleNumber(probPair.fair * 100, lockProgress, 13);
+    return (
+      <ReadoutShell label={label} color={color} reveal={reveal} glow={glowPulse} locked={isLocked}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 9, color: VH.muted, letterSpacing: '0.2em', marginBottom: 2 }}>REAL</div>
+            <div style={{ fontSize: 34, fontWeight: 800, color: VH.amber, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {realStr}<span style={{ fontSize: 18, color: VH.muted, marginLeft: 2 }}>%</span>
+            </div>
+          </div>
+          <div style={{ fontSize: 18, color: VH.muted, alignSelf: 'center' }}>→</div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 9, color: VH.muted, letterSpacing: '0.2em', marginBottom: 2 }}>FAIR</div>
+            <div style={{ fontSize: 34, fontWeight: 800, color: VH.green, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {fairStr}<span style={{ fontSize: 18, color: VH.muted, marginLeft: 2 }}>%</span>
+            </div>
+          </div>
+        </div>
+      </ReadoutShell>
+    );
+  }
+
+  const valStr = scrambleNumber(final, lockProgress, label.length);
+  return (
+    <ReadoutShell label={label} color={color} reveal={reveal} glow={glowPulse} locked={isLocked}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
+        <span style={{
+          fontSize: 54, fontWeight: 900, color, lineHeight: 1,
+          letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums',
+          textShadow: isLocked ? `0 0 18px ${color}66` : 'none',
+        }}>
+          {valStr}
+        </span>
+        {unit && <span style={{ fontSize: 11, color: VH.muted, letterSpacing: '0.15em' }}>{unit}</span>}
+      </div>
+    </ReadoutShell>
+  );
+}
+
+function ReadoutShell({ label, color, reveal, glow, locked, children }) {
+  return (
+    <div style={{
+      background: 'rgba(4,8,6,0.6)',
+      border: `1px solid ${locked ? color : 'rgba(255,255,255,0.08)'}`,
+      borderRadius: 6,
+      padding: '12px 16px',
+      opacity: reveal,
+      transform: `translateX(${(1 - reveal) * 12}px)`,
+      boxShadow: locked ? `0 0 ${12 + glow * 24}px ${color}${Math.floor(20 + glow * 60).toString(16).padStart(2, '0')}` : 'none',
+      transition: 'box-shadow 120ms',
+      flex: 1,
+      display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* corner ticks when locked */}
+      {locked && (
+        <>
+          <span style={{ position: 'absolute', top: -1, left: -1, width: 7, height: 7, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}` }}/>
+          <span style={{ position: 'absolute', top: -1, right: -1, width: 7, height: 7, borderTop: `2px solid ${color}`, borderRight: `2px solid ${color}` }}/>
+          <span style={{ position: 'absolute', bottom: -1, left: -1, width: 7, height: 7, borderBottom: `2px solid ${color}`, borderLeft: `2px solid ${color}` }}/>
+          <span style={{ position: 'absolute', bottom: -1, right: -1, width: 7, height: 7, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}` }}/>
+        </>
+      )}
+      <div style={{
+        fontFamily: VH.mono, fontSize: 10, color: VH.muted,
+        letterSpacing: '0.22em', marginBottom: 6, textAlign: 'center',
+      }}>
+        {label}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function EdgeReadout({ locked, lockT, localTime }) {
+  const preT = lockT - 0.4;
+  const reveal = clamp((localTime - preT) / 0.4, 0, 1);
+  const scrambleStart = lockT - 1.0;
+  let lockProgress = clamp((localTime - scrambleStart) / 1.0, 0, 1);
+  if (!locked && localTime < lockT) lockProgress = Math.min(lockProgress, 0.9);
+  const isLocked = locked && lockProgress >= 1;
+  const val = 11.4;
+  const valStr = scrambleNumber(val, lockProgress, 42);
+
+  // After lock, threshold check appears + green pulse
+  const verdictT = clamp((localTime - (lockT + 0.6)) / 0.5, 0, 1);
+
+  return (
+    <div style={{
+      background: isLocked ? 'rgba(0,230,118,0.08)' : 'rgba(4,8,6,0.6)',
+      border: `2px solid ${isLocked ? VH.green : 'rgba(255,255,255,0.08)'}`,
+      borderRadius: 6,
+      padding: '14px 16px',
+      opacity: reveal,
+      transform: `translateX(${(1 - reveal) * 12}px)`,
+      boxShadow: isLocked ? `0 0 40px rgba(0,230,118,0.35), inset 0 0 30px rgba(0,230,118,0.08)` : 'none',
+      transition: 'box-shadow 200ms, background 200ms, border-color 200ms',
+      flex: 1.3,
+      display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* animated scanline on lock */}
+      {isLocked && (
+        <div style={{
+          position: 'absolute',
+          left: 0, right: 0,
+          height: 2,
+          top: `${((localTime * 30) % 100)}%`,
+          background: 'linear-gradient(90deg, transparent, rgba(0,230,118,0.6), transparent)',
+          pointerEvents: 'none',
+        }}/>
+      )}
+      <div style={{
+        fontFamily: VH.mono, fontSize: 10, color: isLocked ? VH.green : VH.muted,
+        letterSpacing: '0.25em', marginBottom: 4, textAlign: 'center', fontWeight: 700,
+      }}>
+        EDGE
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
+        <span style={{
+          fontSize: 68, fontWeight: 900, color: VH.green, lineHeight: 1,
+          letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums',
+          textShadow: isLocked ? `0 0 24px rgba(0,230,118,0.7)` : 'none',
+          fontFamily: VH.mono,
+        }}>
+          +{valStr}
+        </span>
+        <span style={{ fontSize: 22, color: VH.green, fontWeight: 700 }}>%</span>
+      </div>
+      {/* Verdict line */}
+      <div style={{
+        marginTop: 8,
+        fontFamily: VH.mono, fontSize: 11, textAlign: 'center',
+        opacity: verdictT,
+        transform: `translateY(${(1 - verdictT) * 6}px)`,
+      }}>
+        <span style={{ color: VH.muted }}>threshold </span>
+        <span style={{ color: VH.amber }}>5.0%</span>
+        <span style={{ color: VH.green, margin: '0 8px' }}>✓</span>
+        <span style={{ color: VH.green, fontWeight: 700, letterSpacing: '0.15em' }}>APPROVED</span>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Scene2_EdgeCalc });
+
+// Scene 3: Rejection checklist — 9 filters (18–28s)
+// A list of candidate bets streams through a 9-gate filter. Most get stamped
+// REJECTED (red) as they hit a specific filter; one survives and glows green.
+
+function Scene3_Filters({ start = 18, end = 28 }) {
+  return (
+    <Sprite start={start} end={end}>
+      {({ localTime, duration }) => <Scene3Inner localTime={localTime} duration={duration}/>}
+    </Sprite>
+  );
+}
+
+const FILTERS = [
+  'Edge < 5%',
+  'Sem CLV',
+  'Linha moveu contra',
+  'Amostra < 10 jogos',
+  'Lineup não confirmado',
+  'Chuva/vento',
+  'Clássico emocional',
+  'Tese L recente',
+  'Correlação entre bets',
+];
+
+const CANDIDATES = [
+  { match: 'CHELSEA vs NEWCASTLE',      mkt: 'Over 2.5 gols',            odd: 1.82, rejectFilter: 0, rejectNote: 'edge apenas 3.1%' },
+  { match: 'BAYERN vs LEVERKUSEN',      mkt: 'BTTS Sim',                 odd: 1.65, rejectFilter: 1, rejectNote: 'Bet365 ≤ fair Pinnacle' },
+  { match: 'ATALANTA vs ROMA',          mkt: 'Over 9.5 escanteios',      odd: 1.90, rejectFilter: 2, rejectNote: 'linha caiu 1.95 → 1.82' },
+  { match: 'BRENTFORD vs FULHAM',       mkt: 'Toney 2+ chutes',          odd: 1.75, rejectFilter: 3, rejectNote: 'apenas 6 jogos' },
+  { match: 'BOTAFOGO vs CRUZEIRO',      mkt: 'Luiz Henrique 1+ chute',   odd: 1.95, rejectFilter: 4, rejectNote: 'lineup ainda não anunciado' },
+  { match: 'CELTA vs GETAFE',           mkt: 'Over 3.5 cartões',         odd: 2.10, rejectFilter: 5, rejectNote: 'chuva forte prevista' },
+  { match: 'BOCA vs RIVER',             mkt: 'Over 1.5 gols 1T',         odd: 2.20, rejectFilter: 6, rejectNote: 'Superclásico argentino' },
+  { match: 'LILLE vs NICE',             mkt: 'Under 2.5 gols',           odd: 1.88, rejectFilter: 7, rejectNote: '3 Ls recentes mesma tese' },
+  { match: 'WOLVES vs BOURNEMOUTH',     mkt: 'Over 2.5 + BTTS',          odd: 2.30, rejectFilter: 8, rejectNote: 'correlacionada c/ outra' },
+  { match: 'ATLÉTICO-MG vs FLAMENGO',   mkt: 'Over 10.5 escanteios',     odd: 2.05, rejectFilter: -1, rejectNote: '' }, // survivor
+];
+
+function Scene3Inner({ localTime, duration }) {
+  const opacity = interpolate([0, 0.4, duration - 0.5, duration], [0, 1, 1, 0])(localTime);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity }}>
+      <GridBg opacity={0.3}/>
+
+      {/* Header */}
+      <div style={{ position: 'absolute', top: 36, left: 0, right: 0, textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <PulseDot size={7} speed={1}/>
+          <span style={{
+            fontFamily: VH.mono, fontSize: 11, letterSpacing: '0.3em',
+            color: VH.green, fontWeight: 700,
+          }}>
+            PHASE&nbsp;03&nbsp;//&nbsp;REJECTION&nbsp;CHECKLIST
+          </span>
+        </div>
+        <div style={{
+          fontFamily: VH.sans, fontSize: 26, fontWeight: 800, color: VH.text,
+          letterSpacing: '-0.02em',
+        }}>
+          9 filtros eliminam o que não tem <span style={{ color: VH.green }}>edge real</span>
+        </div>
+      </div>
+
+      {/* Filter gauntlet (right side) */}
+      <FilterColumn localTime={localTime}/>
+
+      {/* Candidate queue (left side) */}
+      <CandidateQueue localTime={localTime}/>
+
+      {/* Counters at bottom */}
+      <Counters localTime={localTime}/>
+
+      <Vignette/>
+    </div>
+  );
+}
+
+function FilterColumn({ localTime }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      right: 60, top: 150,
+      width: 380,
+      fontFamily: VH.sans,
+    }}>
+      <div style={{
+        fontFamily: VH.mono, fontSize: 10, color: VH.muted,
+        letterSpacing: '0.2em', marginBottom: 10,
+      }}>
+        FILTROS ATIVOS (9)
+      </div>
+      <div style={{
+        background: VH.bg2,
+        border: `1px solid ${VH.borderSoft}`,
+        borderRadius: 8,
+        padding: '8px 0',
+      }}>
+        {FILTERS.map((f, i) => (
+          <FilterRow key={i} idx={i} label={f} localTime={localTime}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Each candidate "triggers" its filter briefly — we animate a red flash on
+// the filter row when the active candidate's rejection filter matches.
+function FilterRow({ idx, label, localTime }) {
+  // Find if any candidate is currently at the "reject moment"
+  const active = React.useMemo(() => {
+    for (let ci = 0; ci < CANDIDATES.length; ci++) {
+      const c = CANDIDATES[ci];
+      if (c.rejectFilter !== idx) continue;
+      const birthTime = 1.0 + ci * 0.7;
+      const rejectAt = birthTime + 0.9;
+      if (localTime >= rejectAt && localTime <= rejectAt + 0.6) {
+        return true;
+      }
+    }
+    return false;
+  }, [localTime, idx]);
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '7px 16px',
+      background: active ? 'rgba(255,82,82,0.14)' : 'transparent',
+      borderLeft: `2px solid ${active ? VH.red : 'transparent'}`,
+      transition: 'all 0.1s',
+    }}>
+      <span style={{
+        fontFamily: VH.mono, fontSize: 10,
+        color: active ? VH.red : VH.muted,
+        width: 18, fontWeight: 700,
+      }}>
+        0{idx + 1}
+      </span>
+      <span style={{
+        fontSize: 13, color: active ? VH.red : VH.text,
+        fontWeight: active ? 700 : 500,
+        flex: 1,
+      }}>
+        {label}
+      </span>
+      <span style={{
+        width: 10, height: 10, borderRadius: '50%',
+        background: active ? VH.red : 'rgba(0,230,118,0.2)',
+        border: `1px solid ${active ? VH.red : VH.borderSoft}`,
+        boxShadow: active ? `0 0 8px ${VH.red}` : 'none',
+      }}/>
+    </div>
+  );
+}
+
+// Left column: candidates stream through, get stamped REJECTED mostly, last survives
+function CandidateQueue({ localTime }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      left: 60, top: 150,
+      width: 500,
+      height: 520,
+      fontFamily: VH.sans,
+    }}>
+      <div style={{
+        fontFamily: VH.mono, fontSize: 10, color: VH.muted,
+        letterSpacing: '0.2em', marginBottom: 10,
+      }}>
+        CANDIDATES QUEUE
+      </div>
+      <div style={{
+        position: 'relative',
+        height: 500,
+        background: VH.bg2,
+        border: `1px solid ${VH.borderSoft}`,
+        borderRadius: 8,
+        overflow: 'hidden',
+      }}>
+        {CANDIDATES.map((c, i) => (
+          <CandidateCard key={i} idx={i} candidate={c} localTime={localTime}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CandidateCard({ idx, candidate, localTime }) {
+  // Timing: each card enters at 1.0 + idx*0.7
+  const birthTime = 1.0 + idx * 0.7;
+  const enterDur = 0.4;
+  const rejectAt = birthTime + 0.9;
+
+  const t = localTime - birthTime;
+  if (t < 0) return null;
+
+  // Only show the most recent few cards, others fade out
+  const lastSurvivor = idx === CANDIDATES.length - 1;
+
+  // Position stacks at top-most slot; older ones slide down
+  const slotTop = 14 + (idx * 14); // subtle stagger for old cards
+
+  // Entry animation
+  const entryP = clamp(t / enterDur, 0, 1);
+  const entryX = (1 - Easing.easeOutCubic(entryP)) * -80;
+  const entryO = entryP;
+
+  // Rejection animation
+  let rejectO = 0;
+  let rejectScale = 1;
+  let rejectX = 0;
+  if (candidate.rejectFilter >= 0 && t > (rejectAt - birthTime)) {
+    const rt = t - (rejectAt - birthTime);
+    if (rt > 0 && rt < 0.8) {
+      rejectO = clamp(rt / 0.2, 0, 1);
+      if (rt > 0.5) {
+        rejectX = (rt - 0.5) * 800;
+        rejectO = Math.max(0, 1 - (rt - 0.5) * 3);
+      }
+    } else if (rt >= 0.8) {
+      return null; // gone
+    }
+  }
+
+  // Survivor: stays and highlights
+  let glow = 0;
+  if (lastSurvivor && t > 1.0) {
+    glow = clamp((t - 1.0) / 0.8, 0, 1);
+  }
+
+  // Fade out if too old (only keep the survivor around)
+  if (!lastSurvivor && t > 1.2) return null;
+
+  // Layout: place active card in top slot
+  const isActive = true; // only the current active is visible
+  const top = 60;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: 20 + entryX + rejectX, right: 20,
+      top,
+      opacity: entryO * (rejectO > 0 ? 1 - rejectO : 1),
+      transform: `scale(${rejectScale})`,
+      transformOrigin: 'center',
+    }}>
+      <div style={{
+        background: lastSurvivor && glow > 0
+          ? `linear-gradient(135deg, rgba(0,230,118,${0.1 + glow * 0.1}), rgba(0,230,118,0.03))`
+          : VH.bg3,
+        border: lastSurvivor && glow > 0
+          ? `2px solid ${VH.green}`
+          : `1px solid ${rejectO > 0 ? VH.red : VH.borderSoft}`,
+        borderRadius: 8,
+        padding: '18px 22px',
+        boxShadow: lastSurvivor && glow > 0 ? `0 0 40px ${VH.greenGlow}` : `0 10px 30px rgba(0,0,0,0.4)`,
+        transition: 'border-color 0.1s',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span style={{
+            fontFamily: VH.mono, fontSize: 10, color: VH.muted,
+            letterSpacing: '0.18em',
+          }}>
+            CANDIDATE #{String(idx + 1).padStart(3, '0')}
+          </span>
+          <span style={{
+            fontFamily: VH.mono, fontSize: 10, color: VH.green,
+            letterSpacing: '0.15em',
+          }}>
+            <PulseDot size={5} speed={0.6}/> SCANNING
+          </span>
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: VH.text, marginBottom: 4, letterSpacing: '-0.01em' }}>
+          {candidate.match}
+        </div>
+        <div style={{
+          fontFamily: VH.sans, fontSize: 13, color: VH.muted,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span>{candidate.mkt}</span>
+          <span style={{ fontFamily: VH.mono, color: VH.text, fontWeight: 700 }}>@ {candidate.odd.toFixed(2)}</span>
+        </div>
+
+        {/* REJECT stamp */}
+        {rejectO > 0 && candidate.rejectFilter >= 0 && (
+          <div style={{
+            position: 'absolute', top: 14, right: -16,
+            background: VH.red,
+            color: '#000',
+            fontFamily: VH.mono, fontSize: 16, fontWeight: 900,
+            padding: '8px 14px',
+            letterSpacing: '0.2em',
+            transform: `rotate(-6deg) scale(${0.8 + rejectO * 0.3})`,
+            opacity: rejectO,
+            boxShadow: '0 4px 20px rgba(255,82,82,0.5)',
+            borderRadius: 4,
+          }}>
+            REJECTED
+          </div>
+        )}
+        {rejectO > 0 && candidate.rejectNote && (
+          <div style={{
+            marginTop: 10,
+            fontFamily: VH.mono, fontSize: 11, color: VH.red,
+            opacity: rejectO,
+            borderTop: `1px dashed ${VH.red}66`,
+            paddingTop: 8,
+          }}>
+            ✗ {candidate.rejectNote}
+          </div>
+        )}
+
+        {/* APPROVED stamp on survivor */}
+        {lastSurvivor && glow > 0 && (
+          <div style={{
+            position: 'absolute', top: 14, right: -12,
+            background: VH.green,
+            color: '#000',
+            fontFamily: VH.mono, fontSize: 16, fontWeight: 900,
+            padding: '8px 14px',
+            letterSpacing: '0.2em',
+            transform: `rotate(-4deg) scale(${0.85 + glow * 0.25})`,
+            opacity: glow,
+            boxShadow: `0 4px 20px ${VH.greenGlow}`,
+            borderRadius: 4,
+          }}>
+            APPROVED
+          </div>
+        )}
+        {lastSurvivor && glow > 0 && (
+          <div style={{
+            marginTop: 10,
+            fontFamily: VH.mono, fontSize: 11, color: VH.green,
+            opacity: glow,
+            borderTop: `1px dashed ${VH.green}66`,
+            paddingTop: 8,
+            display: 'flex', justifyContent: 'space-between',
+          }}>
+            <span>✓ edge +8.7% · CLV positivo · 3 ancoragens</span>
+            <span style={{ fontWeight: 800 }}>ALTA</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Counters({ localTime }) {
+  // Count rejected and approved so far
+  let rejected = 0, approved = 0;
+  CANDIDATES.forEach((c, i) => {
+    const birthTime = 1.0 + i * 0.7;
+    const rejectAt = birthTime + 1.3;
+    if (localTime > rejectAt) {
+      if (c.rejectFilter >= 0) rejected++;
+      else approved++;
+    }
+  });
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: 0, right: 0, bottom: 30,
+      display: 'flex', justifyContent: 'center', gap: 40,
+      fontFamily: VH.sans,
+    }}>
+      <Counter label="ANALISADOS"  value={Math.min(CANDIDATES.length, rejected + approved + (localTime > 1 ? 1 : 0))} color={VH.text}/>
+      <Counter label="REJEITADOS"  value={rejected} color={VH.red}/>
+      <Counter label="APROVADOS"   value={approved} color={VH.green}/>
+    </div>
+  );
+}
+
+function Counter({ label, value, color }) {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        fontFamily: VH.mono, fontSize: 32, fontWeight: 900,
+        color, fontVariantNumeric: 'tabular-nums',
+        lineHeight: 1,
+        textShadow: `0 0 12px ${color}55`,
+      }}>
+        {String(value).padStart(2, '0')}
+      </div>
+      <div style={{
+        fontFamily: VH.mono, fontSize: 10, color: VH.muted,
+        letterSpacing: '0.2em', marginTop: 4,
+      }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Scene3_Filters });
+
+// Scene 4: PDF assembly (28–38s)
+// A document mockup gets built line by line — header, match, odds, edge, etc.
+// On the sides, "raw data" lines stream in then get compiled into clean PDF lines.
+
+function Scene4_PDF({ start = 28, end = 38 }) {
+  return (
+    <Sprite start={start} end={end}>
+      {({ localTime, duration }) => <Scene4Inner localTime={localTime} duration={duration}/>}
+    </Sprite>
+  );
+}
+
+const PDF_LINES = [
+  { type: 'title',     content: 'Value Hunter — Relatório Diário',    delay: 0.4 },
+  { type: 'date',      content: '19 de abril de 2026',                  delay: 0.7 },
+  { type: 'divider',   content: '',                                      delay: 1.0 },
+  { type: 'h2',        content: 'Aposta aprovada · ALTA confiança',     delay: 1.3 },
+  { type: 'row',       label: 'Jogo',       value: 'Atlético-MG vs Flamengo',    delay: 1.7 },
+  { type: 'row',       label: 'Campeonato', value: 'Libertadores · Quartas',     delay: 2.0 },
+  { type: 'row',       label: 'Mercado',    value: 'Over 10.5 escanteios totais',delay: 2.3 },
+  { type: 'row',       label: 'Odd',        value: '2.05',                        delay: 2.6 },
+  { type: 'row',       label: 'Fair Odd',   value: '1.88',                        delay: 2.9 },
+  { type: 'row',       label: 'Edge',       value: '+8.7% · CLV positivo',        delay: 3.2, highlight: true },
+  { type: 'row',       label: 'Stake',      value: 'R$ 50,00',                    delay: 3.5 },
+  { type: 'divider',   content: '',                                      delay: 3.8 },
+  { type: 'h3',        content: 'Justificativa quantitativa',            delay: 4.1 },
+  { type: 'bullet',    content: 'Média de escanteios Atlético em casa: 6.1/jogo (22 amostras)', delay: 4.4 },
+  { type: 'bullet',    content: 'Flamengo fora: 5.4/jogo (19 amostras)',  delay: 4.7 },
+  { type: 'bullet',    content: 'H2H últimos 5: média 11.8 escanteios',   delay: 5.0 },
+  { type: 'bullet',    content: 'Árbitro perfil "severo" favorece pressão ofensiva', delay: 5.3 },
+];
+
+function Scene4Inner({ localTime, duration }) {
+  const opacity = interpolate([0, 0.4, duration - 0.5, duration], [0, 1, 1, 0])(localTime);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity }}>
+      <GridBg opacity={0.3}/>
+
+      {/* Header */}
+      <div style={{ position: 'absolute', top: 36, left: 0, right: 0, textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <PulseDot size={7} speed={1}/>
+          <span style={{
+            fontFamily: VH.mono, fontSize: 11, letterSpacing: '0.3em',
+            color: VH.green, fontWeight: 700,
+          }}>
+            PHASE&nbsp;04&nbsp;//&nbsp;REPORT&nbsp;ASSEMBLY
+          </span>
+        </div>
+        <div style={{
+          fontFamily: VH.sans, fontSize: 26, fontWeight: 800, color: VH.text,
+          letterSpacing: '-0.02em',
+        }}>
+          Compilando o relatório <span style={{ color: VH.green }}>em PDF</span>
+        </div>
+      </div>
+
+      {/* Left: stream of raw data */}
+      <RawDataStream localTime={localTime}/>
+
+      {/* Center: PDF document */}
+      <PDFDoc localTime={localTime}/>
+
+      {/* Right: secondary stream */}
+      <RawDataStream localTime={localTime} rightSide={true}/>
+
+      <Vignette/>
+    </div>
+  );
+}
+
+function RawDataStream({ localTime, rightSide = false }) {
+  const lines = [
+    'xG_home=1.82', 'xG_away=0.94', 'sot_avg=6.1',
+    'pinnacle.over=1.92', 'bet365.over=2.05', 'edge=0.087',
+    'poss_home=58%', 'corners_h2h=11.8', 'referee_yc=4.3',
+    'clv_delta=+0.043', 'sample=22gm', 'fair_odd=1.88',
+    'probfair=0.532', 'probreal=0.578', 'movement=stable',
+    'approved=true', 'stake=50.00', 'confidence=HIGH',
+    'filters_passed=9/9', 'writing_pdf=1',
+  ];
+  const scrollSpeed = 60; // px/s
+  const lineHeight = 22;
+  const totalH = lines.length * lineHeight;
+  const offset = (localTime * scrollSpeed) % totalH;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: rightSide ? 'auto' : 40,
+      right: rightSide ? 40 : 'auto',
+      top: 160,
+      width: 180, height: 440,
+      overflow: 'hidden',
+      opacity: 0.55,
+      pointerEvents: 'none',
+      maskImage: 'linear-gradient(to bottom, transparent, #000 15%, #000 85%, transparent)',
+      WebkitMaskImage: 'linear-gradient(to bottom, transparent, #000 15%, #000 85%, transparent)',
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: -offset,
+        left: 0, right: 0,
+        fontFamily: VH.mono,
+        fontSize: 11,
+        color: VH.green,
+      }}>
+        {[...lines, ...lines, ...lines].map((l, i) => (
+          <div key={i} style={{
+            height: lineHeight,
+            display: 'flex', alignItems: 'center',
+            letterSpacing: '0.05em',
+            textAlign: rightSide ? 'right' : 'left',
+            justifyContent: rightSide ? 'flex-end' : 'flex-start',
+          }}>
+            <span style={{ color: VH.muted, marginRight: 6 }}>{rightSide ? '←' : '→'}</span>
+            {l}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PDFDoc({ localTime }) {
+  // Document appears in first 0.5s
+  const entry = clamp(localTime / 0.5, 0, 1);
+  const entryE = Easing.easeOutBack(entry);
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: '50%', top: 140,
+      transform: `translate(-50%, 0) scale(${0.9 + entryE * 0.1})`,
+      opacity: entry,
+      width: 460,
+      minHeight: 520,
+      background: '#f6f4ef',
+      color: '#0a0a0a',
+      borderRadius: 6,
+      fontFamily: VH.sans,
+      boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${VH.greenGlow}`,
+      padding: '32px 38px 28px',
+      overflow: 'hidden',
+    }}>
+      {/* Top brand strip */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: 20,
+        paddingBottom: 12,
+        borderBottom: '1px solid rgba(0,0,0,0.08)',
+      }}>
+        <span style={{
+          fontFamily: VH.sans, fontSize: 14, fontWeight: 900,
+          letterSpacing: '-0.02em', color: '#0a0a0a',
+        }}>
+          Value<span style={{ color: VH.greenDim }}>Hunter</span>
+        </span>
+        <span style={{
+          fontFamily: VH.mono, fontSize: 9, color: '#888',
+          letterSpacing: '0.15em',
+        }}>
+          REPORT · 19/04/2026
+        </span>
+      </div>
+
+      {/* Lines materialize one by one */}
+      {PDF_LINES.map((line, i) => (
+        <PDFLine key={i} line={line} localTime={localTime}/>
+      ))}
+
+      {/* Typing caret at the end after last line */}
+      <TypingCaret localTime={localTime} lastDelay={PDF_LINES[PDF_LINES.length - 1].delay + 0.4}/>
+
+      {/* Compiling overlay that sweeps down */}
+      <ScanLine localTime={localTime}/>
+    </div>
+  );
+}
+
+function PDFLine({ line, localTime }) {
+  const t = localTime - line.delay;
+  if (t < 0) return <div style={{ height: line.type === 'divider' ? 16 : line.type === 'title' ? 40 : line.type === 'h2' ? 32 : line.type === 'h3' ? 28 : 24 }}/>;
+
+  const inP = clamp(t / 0.25, 0, 1);
+  const opacity = inP;
+  const ty = (1 - Easing.easeOutCubic(inP)) * 6;
+
+  const common = { opacity, transform: `translateY(${ty}px)`, willChange: 'transform, opacity' };
+
+  if (line.type === 'title') {
+    return (
+      <div style={{
+        ...common,
+        fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em',
+        marginBottom: 2, color: '#0a0a0a',
+      }}>
+        {line.content}
+      </div>
+    );
+  }
+  if (line.type === 'date') {
+    return (
+      <div style={{
+        ...common,
+        fontFamily: VH.mono, fontSize: 11, color: '#666',
+        letterSpacing: '0.15em', marginBottom: 12,
+      }}>
+        {line.content.toUpperCase()}
+      </div>
+    );
+  }
+  if (line.type === 'divider') {
+    return <div style={{
+      ...common,
+      height: 1, background: 'rgba(0,0,0,0.08)',
+      margin: '14px 0',
+    }}/>;
+  }
+  if (line.type === 'h2') {
+    return (
+      <div style={{
+        ...common,
+        fontSize: 14, fontWeight: 800, color: VH.greenDim,
+        letterSpacing: '0.1em', textTransform: 'uppercase',
+        marginBottom: 10,
+      }}>
+        {line.content}
+      </div>
+    );
+  }
+  if (line.type === 'h3') {
+    return (
+      <div style={{
+        ...common,
+        fontSize: 12, fontWeight: 700, color: '#0a0a0a',
+        letterSpacing: '0.05em',
+        marginTop: 4, marginBottom: 8,
+      }}>
+        {line.content}
+      </div>
+    );
+  }
+  if (line.type === 'row') {
+    return (
+      <div style={{
+        ...common,
+        display: 'flex', justifyContent: 'space-between',
+        padding: '5px 0',
+        borderBottom: '1px dashed rgba(0,0,0,0.06)',
+        fontSize: 12,
+        color: line.highlight ? VH.greenDim : '#0a0a0a',
+        fontWeight: line.highlight ? 800 : 500,
+      }}>
+        <span style={{ color: line.highlight ? VH.greenDim : '#666', fontWeight: line.highlight ? 800 : 500 }}>
+          {line.label}
+        </span>
+        <span style={{ fontFamily: VH.mono, fontVariantNumeric: 'tabular-nums' }}>
+          {line.value}
+        </span>
+      </div>
+    );
+  }
+  if (line.type === 'bullet') {
+    return (
+      <div style={{
+        ...common,
+        display: 'flex', gap: 8,
+        padding: '3px 0',
+        fontSize: 11, color: '#333',
+        lineHeight: 1.5,
+      }}>
+        <span style={{ color: VH.greenDim, fontWeight: 800, flexShrink: 0 }}>✓</span>
+        <span>{line.content}</span>
+      </div>
+    );
+  }
+  return null;
+}
+
+function TypingCaret({ localTime, lastDelay }) {
+  if (localTime < lastDelay) {
+    // blink
+    const blink = Math.floor(localTime * 2) % 2;
+    return (
+      <span style={{
+        display: 'inline-block',
+        width: 8, height: 14,
+        background: blink ? VH.greenDim : 'transparent',
+        marginLeft: 2,
+        verticalAlign: 'middle',
+      }}/>
+    );
+  }
+  return null;
+}
+
+function ScanLine({ localTime }) {
+  // A subtle green scan line sweeps down the doc a few times
+  const period = 2.5;
+  const phase = (localTime % period) / period;
+  const y = phase * 560;
+  const opacity = Math.sin(phase * Math.PI) * 0.35;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: 0, right: 0,
+      top: y, height: 40,
+      pointerEvents: 'none',
+      background: `linear-gradient(to bottom, transparent, ${VH.green}33, transparent)`,
+      opacity,
+    }}/>
+  );
+}
+
+Object.assign(window, { Scene4_PDF });
+
+// Scene 5: PDF flies to phone + notification (38–48s)
+// A miniature PDF "launches" from the center/left and lands on a phone frame
+// on the right. The phone lights up, notification banner slides in, user taps.
+
+function Scene5_Send({ start = 38, end = 48 }) {
+  return (
+    <Sprite start={start} end={end}>
+      {({ localTime, duration }) => <Scene5Inner localTime={localTime} duration={duration}/>}
+    </Sprite>
+  );
+}
+
+function Scene5Inner({ localTime, duration }) {
+  const opacity = interpolate([0, 0.4, duration - 0.5, duration], [0, 1, 1, 0])(localTime);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity }}>
+      <GridBg opacity={0.25}/>
+
+      {/* Header */}
+      <div style={{ position: 'absolute', top: 36, left: 0, right: 0, textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <PulseDot size={7} speed={1}/>
+          <span style={{
+            fontFamily: VH.mono, fontSize: 11, letterSpacing: '0.3em',
+            color: VH.green, fontWeight: 700,
+          }}>
+            PHASE&nbsp;05&nbsp;//&nbsp;DELIVERY
+          </span>
+        </div>
+        <div style={{
+          fontFamily: VH.sans, fontSize: 26, fontWeight: 800, color: VH.text,
+          letterSpacing: '-0.02em',
+        }}>
+          Enviando direto <span style={{ color: VH.green }}>pra você</span>
+        </div>
+      </div>
+
+      {/* Server/source on left */}
+      <ServerNode localTime={localTime}/>
+
+      {/* Flying PDF + trail */}
+      <FlyingPDF localTime={localTime}/>
+
+      {/* Phone on the right */}
+      <PhoneFrame localTime={localTime}/>
+
+      {/* Connection beam */}
+      <Beam localTime={localTime}/>
+
+      <Vignette/>
+    </div>
+  );
+}
+
+function ServerNode({ localTime }) {
+  const entry = clamp(localTime / 0.5, 0, 1);
+  const pulse = 0.5 + 0.5 * Math.sin(localTime * 3);
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: 100, top: 280,
+      width: 160,
+      opacity: Easing.easeOutCubic(entry),
+      transform: `translateY(${(1 - entry) * 20}px)`,
+    }}>
+      <div style={{
+        width: 140, height: 140,
+        margin: '0 auto',
+        borderRadius: 16,
+        background: `radial-gradient(circle, ${VH.green}33 0%, ${VH.bg2} 70%)`,
+        border: `2px solid ${VH.green}`,
+        boxShadow: `0 0 ${20 + pulse * 30}px ${VH.greenGlow}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column',
+        position: 'relative',
+      }}>
+        {/* SVG document glyph */}
+        <svg width="52" height="62" viewBox="0 0 52 62" fill="none">
+          <path d="M4 2h32l12 12v44a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"
+                fill={VH.bg} stroke={VH.green} strokeWidth="2"/>
+          <path d="M36 2v12h12" stroke={VH.green} strokeWidth="2" fill="none"/>
+          <rect x="10" y="24" width="26" height="2" fill={VH.green}/>
+          <rect x="10" y="30" width="32" height="2" fill={VH.green}/>
+          <rect x="10" y="36" width="22" height="2" fill={VH.green}/>
+          <rect x="10" y="46" width="32" height="2" fill={VH.green} opacity="0.5"/>
+          <rect x="10" y="52" width="18" height="2" fill={VH.green} opacity="0.5"/>
+        </svg>
+        <div style={{
+          fontFamily: VH.mono, fontSize: 9,
+          color: VH.green, letterSpacing: '0.2em',
+          marginTop: 10,
+        }}>
+          REPORT.PDF
+        </div>
+      </div>
+      <div style={{
+        fontFamily: VH.mono, fontSize: 10,
+        color: VH.muted, letterSpacing: '0.2em',
+        marginTop: 16, textAlign: 'center',
+      }}>
+        VALUE HUNTER · NODE
+      </div>
+    </div>
+  );
+}
+
+function FlyingPDF({ localTime }) {
+  // First packet launches at 1.2s, arrives at phone at 3.5s
+  const packets = [
+    { launch: 1.2, arrive: 3.2 },
+  ];
+
+  const startX = 180, startY = 340;
+  const endX = 830, endY = 350;
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      {packets.map((p, i) => {
+        if (localTime < p.launch) return null;
+        if (localTime > p.arrive + 0.3) return null;
+
+        const t = clamp((localTime - p.launch) / (p.arrive - p.launch), 0, 1);
+        const eased = Easing.easeInOutCubic(t);
+
+        // Arc trajectory
+        const x = startX + (endX - startX) * eased;
+        const y = startY + (endY - startY) * eased - Math.sin(eased * Math.PI) * 120;
+
+        const scale = 0.6 + (1 - Math.abs(eased - 0.5) * 2) * 0.5;
+        const rotate = -20 + eased * 40;
+        const opacity = t > 0.85 ? (1 - (t - 0.85) / 0.15) : 1;
+
+        return (
+          <div key={i}>
+            {/* Trail */}
+            {Array.from({ length: 8 }, (_, j) => {
+              const jT = Math.max(0, t - j * 0.04);
+              if (jT <= 0) return null;
+              const jE = Easing.easeInOutCubic(jT);
+              const jX = startX + (endX - startX) * jE;
+              const jY = startY + (endY - startY) * jE - Math.sin(jE * Math.PI) * 120;
+              return (
+                <div key={j} style={{
+                  position: 'absolute',
+                  left: jX, top: jY,
+                  width: 8, height: 8,
+                  transform: 'translate(-50%,-50%)',
+                  borderRadius: '50%',
+                  background: VH.green,
+                  opacity: (1 - j / 8) * 0.5 * opacity,
+                  boxShadow: `0 0 8px ${VH.greenGlow}`,
+                }}/>
+              );
+            })}
+            {/* The PDF */}
+            <div style={{
+              position: 'absolute',
+              left: x, top: y,
+              transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${scale})`,
+              opacity,
+              width: 64, height: 80,
+              background: '#f6f4ef',
+              borderRadius: 4,
+              boxShadow: `0 10px 30px rgba(0,0,0,0.6), 0 0 30px ${VH.greenGlow}`,
+              padding: '8px',
+            }}>
+              <div style={{ fontFamily: VH.sans, fontSize: 7, fontWeight: 900, color: '#0a0a0a' }}>
+                Value<span style={{ color: VH.greenDim }}>Hunter</span>
+              </div>
+              <div style={{
+                marginTop: 4,
+                height: 2, background: '#0a0a0a', opacity: 0.6,
+              }}/>
+              <div style={{ marginTop: 3, height: 2, background: '#0a0a0a', opacity: 0.4 }}/>
+              <div style={{ marginTop: 3, height: 2, background: '#0a0a0a', opacity: 0.4, width: '70%' }}/>
+              <div style={{ marginTop: 6, height: 2, background: VH.greenDim, width: '80%' }}/>
+              <div style={{ marginTop: 3, height: 2, background: '#0a0a0a', opacity: 0.3 }}/>
+              <div style={{ marginTop: 3, height: 2, background: '#0a0a0a', opacity: 0.3, width: '60%' }}/>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Beam({ localTime }) {
+  const opacity = clamp((localTime - 0.8) / 0.4, 0, 1) * clamp((5.5 - localTime) / 0.5, 0, 1);
+  const phase = ((localTime * 0.6) % 1);
+  return (
+    <svg width="700" height="100" style={{
+      position: 'absolute',
+      left: 200, top: 370,
+      opacity: opacity * 0.6,
+      pointerEvents: 'none',
+    }}>
+      <defs>
+        <linearGradient id="s5-beam" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={VH.green} stopOpacity="0"/>
+          <stop offset="50%" stopColor={VH.green} stopOpacity="0.7"/>
+          <stop offset="100%" stopColor={VH.green} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="50" x2="700" y2="50" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 6"/>
+      <rect x={phase * 700 - 60} y={47} width="120" height="6" fill="url(#s5-beam)" rx="3"/>
+    </svg>
+  );
+}
+
+function PhoneFrame({ localTime }) {
+  const entry = clamp(localTime / 0.5, 0, 1);
+  const entryE = Easing.easeOutBack(entry);
+
+  // Notification appears at ~3.3s (when PDF arrives)
+  const notifT = localTime - 3.3;
+  const notifP = clamp(notifT / 0.5, 0, 1);
+  const notifShow = notifT > 0;
+
+  // Tap interaction at ~5.5s
+  const tapT = localTime - 5.5;
+  const tapShow = tapT > 0 && tapT < 0.6;
+
+  // Open PDF at ~5.8s
+  const openT = localTime - 5.8;
+  const openP = clamp(openT / 0.5, 0, 1);
+
+  return (
+    <div style={{
+      position: 'absolute',
+      right: 120, top: 135,
+      width: 280, height: 560,
+      opacity: entry,
+      transform: `translateY(${(1 - entryE) * 30}px) scale(${0.95 + entryE * 0.05})`,
+    }}>
+      {/* Phone body */}
+      <div style={{
+        width: '100%', height: '100%',
+        background: '#0a0a0a',
+        borderRadius: 40,
+        border: `2px solid ${VH.bg3}`,
+        boxShadow: `0 20px 60px rgba(0,0,0,0.7), 0 0 ${notifShow ? 40 : 20}px ${notifShow ? VH.greenGlow : 'rgba(0,0,0,0.4)'}`,
+        padding: 10,
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'box-shadow 0.3s',
+      }}>
+        {/* Screen */}
+        <div style={{
+          width: '100%', height: '100%',
+          borderRadius: 32,
+          background: openP > 0 ? '#f6f4ef' : `linear-gradient(180deg, ${VH.bg} 0%, ${VH.bg2} 100%)`,
+          overflow: 'hidden',
+          position: 'relative',
+          transition: 'background 0.3s',
+        }}>
+          {/* Notch */}
+          <div style={{
+            position: 'absolute',
+            left: '50%', top: 12,
+            transform: 'translateX(-50%)',
+            width: 90, height: 24,
+            background: '#0a0a0a',
+            borderRadius: 14,
+            zIndex: 10,
+          }}/>
+
+          {openP < 0.3 ? (
+            /* Lockscreen view */
+            <div style={{ padding: '48px 14px 14px', height: '100%', color: '#fff', fontFamily: VH.sans }}>
+              {/* Time */}
+              <div style={{
+                textAlign: 'center', marginBottom: 20,
+                opacity: 1 - openP * 3,
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 500, opacity: 0.7, fontFamily: VH.mono, letterSpacing: '0.15em' }}>
+                  QUA 19 ABR
+                </div>
+                <div style={{ fontSize: 64, fontWeight: 200, lineHeight: 1, marginTop: 4, letterSpacing: '-0.03em' }}>
+                  08:32
+                </div>
+              </div>
+
+              {/* Notification */}
+              {notifShow && (
+                <div style={{
+                  margin: '0 4px',
+                  padding: '12px 14px',
+                  background: 'rgba(246,244,239,0.95)',
+                  color: '#0a0a0a',
+                  borderRadius: 14,
+                  opacity: notifP,
+                  transform: `translateY(${(1 - Easing.easeOutBack(notifP)) * 30}px)`,
+                  boxShadow: `0 8px 24px rgba(0,0,0,0.5)`,
+                  position: 'relative',
+                }}>
+                  {/* Glow ring when fresh */}
+                  {notifT < 1.2 && (
+                    <div style={{
+                      position: 'absolute', inset: -2,
+                      borderRadius: 16,
+                      border: `2px solid ${VH.green}`,
+                      opacity: (1 - clamp(notifT / 1.2, 0, 1)) * 0.8,
+                      pointerEvents: 'none',
+                    }}/>
+                  )}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{
+                      width: 30, height: 30,
+                      borderRadius: 7,
+                      background: `linear-gradient(135deg, ${VH.green}, ${VH.greenDim})`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#000', fontWeight: 900, fontSize: 14,
+                      flexShrink: 0,
+                    }}>
+                      V
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em' }}>Value Hunter</span>
+                        <span style={{ fontSize: 9, color: '#888' }}>agora</span>
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, marginTop: 2, letterSpacing: '-0.01em' }}>
+                        Relatório de hoje disponível
+                      </div>
+                      <div style={{ fontSize: 11, color: '#444', marginTop: 2, lineHeight: 1.3 }}>
+                        1 aposta aprovada · ALTA confiança · +8.7% edge
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tap ripple */}
+              {tapShow && (
+                <TapRipple x={140} y={300 - 180} t={tapT}/>
+              )}
+            </div>
+          ) : (
+            /* Opened PDF view */
+            <OpenedPDFView openP={openP}/>
+          )}
+        </div>
+      </div>
+
+      {/* Tag under phone */}
+      <div style={{
+        marginTop: 16, textAlign: 'center',
+        fontFamily: VH.mono, fontSize: 10, color: VH.muted,
+        letterSpacing: '0.2em',
+      }}>
+        YOUR DEVICE · 08:32
+      </div>
+    </div>
+  );
+}
+
+function TapRipple({ x, y, t }) {
+  const p = clamp(t / 0.6, 0, 1);
+  const size = 80 * p;
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      width: size, height: size,
+      marginLeft: -size / 2, marginTop: -size / 2,
+      borderRadius: '50%',
+      border: `2px solid ${VH.green}`,
+      opacity: 1 - p,
+    }}/>
+  );
+}
+
+function OpenedPDFView({ openP }) {
+  return (
+    <div style={{
+      padding: '48px 18px 18px',
+      fontFamily: VH.sans,
+      color: '#0a0a0a',
+      opacity: openP,
+      transform: `scale(${0.95 + openP * 0.05})`,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+        <span style={{ fontSize: 12, fontWeight: 900 }}>
+          Value<span style={{ color: VH.greenDim }}>Hunter</span>
+        </span>
+        <span style={{ fontFamily: VH.mono, fontSize: 8, color: '#888' }}>19/04</span>
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.01em' }}>
+        Aposta aprovada
+      </div>
+      <div style={{ fontFamily: VH.mono, fontSize: 9, color: VH.greenDim, letterSpacing: '0.15em', marginBottom: 12 }}>
+        ALTA · EDGE +8.7%
+      </div>
+      <InfoRow k="Jogo" v="Atlético-MG × Flamengo"/>
+      <InfoRow k="Mercado" v="Over 10.5 escanteios"/>
+      <InfoRow k="Odd" v="2.05"/>
+      <InfoRow k="Fair" v="1.88"/>
+      <InfoRow k="Stake" v="R$ 50,00" bold/>
+      <div style={{
+        marginTop: 14, padding: '10px 12px',
+        background: `linear-gradient(135deg, ${VH.green}1a, ${VH.green}0a)`,
+        border: `1px solid ${VH.green}55`,
+        borderRadius: 6,
+        fontSize: 10, color: '#0a0a0a', lineHeight: 1.5,
+      }}>
+        <span style={{ fontWeight: 800, color: VH.greenDim }}>✓ CLV positivo.</span> Bet365 2.05 vs fair 1.88 → +9% CLV potencial.
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ k, v, bold }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between',
+      padding: '4px 0',
+      fontSize: 11,
+      borderBottom: '1px dashed rgba(0,0,0,0.06)',
+      fontWeight: bold ? 800 : 500,
+      color: bold ? VH.greenDim : '#0a0a0a',
+    }}>
+      <span style={{ color: '#666', fontWeight: bold ? 800 : 500 }}>{k}</span>
+      <span style={{ fontFamily: VH.mono }}>{v}</span>
+    </div>
+  );
+}
+
+Object.assign(window, { Scene5_Send });
+
+// Scene 6: ROI celebration / green result (48–56s)
+// A victory scene: the approved bet resolves "WIN", confetti bursts, ROI
+// counter climbs, ending with the brand mark and a subtle CTA.
+
+function Scene6_Win({ start = 48, end = 56 }) {
+  return (
+    <Sprite start={start} end={end}>
+      {({ localTime, duration }) => <Scene6Inner localTime={localTime} duration={duration}/>}
+    </Sprite>
+  );
+}
+
+function Scene6Inner({ localTime, duration }) {
+  const opacity = interpolate([0, 0.4, duration - 0.5, duration], [0, 1, 1, 0])(localTime);
+
+  // ROI counter: climbs from 0 to 27.5 over 2.5s starting at 1.5s
+  const roiT = clamp((localTime - 1.5) / 2.5, 0, 1);
+  const roiVal = 27.5 * Easing.easeOutCubic(roiT);
+
+  // Stake return counter
+  const retT = clamp((localTime - 0.8) / 1.8, 0, 1);
+  const ret = 102.50 * Easing.easeOutCubic(retT);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity, overflow: 'hidden' }}>
+      <GridBg opacity={0.25}/>
+
+      {/* Background glow */}
+      <div style={{
+        position: 'absolute',
+        left: '50%', top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 900, height: 900,
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${VH.green}22 0%, transparent 60%)`,
+        pointerEvents: 'none',
+        opacity: clamp((localTime - 0.3) / 0.8, 0, 1),
+      }}/>
+
+      {/* Confetti */}
+      <Confetti localTime={localTime}/>
+
+      {/* Centerpiece */}
+      <div style={{
+        position: 'absolute',
+        left: '50%', top: 90,
+        transform: 'translateX(-50%)',
+        textAlign: 'center',
+        fontFamily: VH.sans,
+        width: 900,
+      }}>
+        {/* PHASE tag */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          marginBottom: 10,
+          opacity: clamp(localTime / 0.5, 0, 1),
+        }}>
+          <PulseDot size={7} speed={1}/>
+          <span style={{
+            fontFamily: VH.mono, fontSize: 11, letterSpacing: '0.3em',
+            color: VH.green, fontWeight: 700,
+          }}>
+            PHASE&nbsp;06&nbsp;//&nbsp;GREEN
+          </span>
+        </div>
+
+        {/* WIN stamp */}
+        <WinStamp localTime={localTime}/>
+
+        {/* Result card */}
+        <div style={{
+          margin: '30px auto 0',
+          width: 520,
+          background: `linear-gradient(135deg, rgba(0,230,118,0.12), rgba(0,230,118,0.03))`,
+          border: `1px solid ${VH.green}`,
+          borderRadius: 12,
+          padding: '24px 28px',
+          textAlign: 'left',
+          boxShadow: `0 0 60px ${VH.greenGlow}`,
+          opacity: clamp((localTime - 0.6) / 0.5, 0, 1),
+          transform: `translateY(${(1 - Easing.easeOutCubic(clamp((localTime - 0.6) / 0.5, 0, 1))) * 20}px)`,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <span style={{ fontFamily: VH.mono, fontSize: 10, color: VH.green, letterSpacing: '0.2em' }}>
+              APOSTA RESOLVIDA
+            </span>
+            <span style={{ fontFamily: VH.mono, fontSize: 10, color: VH.muted, letterSpacing: '0.15em' }}>
+              19/04 · 23:14
+            </span>
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: VH.text, letterSpacing: '-0.01em', marginBottom: 4 }}>
+            Atlético-MG 2 × 1 Flamengo
+          </div>
+          <div style={{ fontSize: 13, color: VH.muted, marginBottom: 16 }}>
+            Over 10.5 escanteios · fechou em 13 escanteios
+          </div>
+
+          <div style={{ display: 'flex', gap: 16 }}>
+            <StatBlock label="ODD" value="2.05"/>
+            <StatBlock label="STAKE" value="R$ 50,00"/>
+            <StatBlock label="RETORNO" value={`R$ ${ret.toFixed(2).replace('.', ',')}`} accent/>
+          </div>
+        </div>
+
+        {/* ROI badge */}
+        <div style={{
+          marginTop: 28,
+          opacity: clamp((localTime - 1.3) / 0.6, 0, 1),
+        }}>
+          <div style={{ fontFamily: VH.mono, fontSize: 11, color: VH.muted, letterSpacing: '0.3em', marginBottom: 6 }}>
+            ROI · MÊS DE TESTE
+          </div>
+          <div style={{
+            fontFamily: VH.sans,
+            fontSize: 84,
+            fontWeight: 900,
+            color: VH.green,
+            letterSpacing: '-0.04em',
+            lineHeight: 1,
+            fontVariantNumeric: 'tabular-nums',
+            textShadow: `0 0 40px ${VH.greenGlow}`,
+          }}>
+            +{roiVal.toFixed(1).replace('.', ',')}<span style={{ fontSize: 56 }}>%</span>
+          </div>
+        </div>
+
+        {/* Tagline */}
+        <div style={{
+          marginTop: 22,
+          fontSize: 20, color: VH.text, fontWeight: 700,
+          letterSpacing: '-0.01em',
+          opacity: clamp((localTime - 3.2) / 0.5, 0, 1),
+          transform: `translateY(${(1 - Easing.easeOutCubic(clamp((localTime - 3.2) / 0.5, 0, 1))) * 10}px)`,
+        }}>
+          Toda manhã. <span style={{ color: VH.green }}>Sem achismo. Só edge real.</span>
+        </div>
+
+        {/* Brand lockup */}
+        <div style={{
+          marginTop: 14,
+          opacity: clamp((localTime - 3.8) / 0.5, 0, 1),
+          fontFamily: VH.sans, fontSize: 32, fontWeight: 900,
+          letterSpacing: '-0.03em',
+        }}>
+          Value<span style={{ color: VH.green }}>Hunter</span>
+        </div>
+      </div>
+
+      <Vignette color={`${VH.green}11`}/>
+    </div>
+  );
+}
+
+function StatBlock({ label, value, accent }) {
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{
+        fontFamily: VH.mono, fontSize: 9, color: VH.muted,
+        letterSpacing: '0.2em', marginBottom: 4,
+      }}>
+        {label}
+      </div>
+      <div style={{
+        fontFamily: VH.mono,
+        fontSize: accent ? 22 : 18,
+        fontWeight: 900,
+        color: accent ? VH.green : VH.text,
+        fontVariantNumeric: 'tabular-nums',
+        textShadow: accent ? `0 0 12px ${VH.greenGlow}` : 'none',
+      }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function WinStamp({ localTime }) {
+  const appear = clamp((localTime - 0.3) / 0.4, 0, 1);
+  const eased = Easing.easeOutBack(appear);
+  return (
+    <div style={{
+      display: 'inline-block',
+      transform: `scale(${0.6 + eased * 0.5}) rotate(-3deg)`,
+      opacity: appear,
+    }}>
+      <div style={{
+        background: VH.green,
+        color: '#000',
+        fontFamily: VH.mono,
+        fontWeight: 900,
+        fontSize: 58,
+        letterSpacing: '0.15em',
+        padding: '10px 36px',
+        borderRadius: 6,
+        boxShadow: `0 0 50px ${VH.greenGlow}`,
+      }}>
+        GREEN ✓
+      </div>
+    </div>
+  );
+}
+
+function Confetti({ localTime }) {
+  const pieces = React.useMemo(() => {
+    const rnd = mulberry32(42);
+    const arr = [];
+    for (let i = 0; i < 60; i++) {
+      arr.push({
+        x: 100 + rnd() * 1000,
+        delay: rnd() * 0.8,
+        angle: (rnd() - 0.5) * 80,
+        speed: 120 + rnd() * 160,
+        color: [VH.green, VH.greenDim, VH.text, VH.amber][Math.floor(rnd() * 4)],
+        size: 4 + rnd() * 6,
+        spin: (rnd() - 0.5) * 720,
+        shape: rnd() > 0.5 ? 'rect' : 'circle',
+      });
+    }
+    return arr;
+  }, []);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {pieces.map((p, i) => {
+        const t = localTime - p.delay;
+        if (t < 0) return null;
+        const y = -20 + t * p.speed;
+        const x = p.x + Math.sin(t * 2 + i) * 40 + p.angle * t;
+        const rot = t * p.spin;
+        const opacity = t > 3.5 ? Math.max(0, 1 - (t - 3.5) / 1) : 1;
+        if (y > 720) return null;
+
+        return (
+          <div key={i} style={{
+            position: 'absolute',
+            left: x, top: y,
+            width: p.size, height: p.shape === 'rect' ? p.size * 1.4 : p.size,
+            background: p.color,
+            borderRadius: p.shape === 'circle' ? '50%' : 1,
+            transform: `rotate(${rot}deg)`,
+            opacity,
+            boxShadow: `0 0 6px ${p.color}66`,
+          }}/>
+        );
+      })}
+    </div>
+  );
+}
+
+Object.assign(window, { Scene6_Win });
+
+
+// ── Main composer ──
+function TransitionFlash({ times }) {
+  const t = useTime();
+  let flashO = 0;
+  for (const bt of times) {
+    const d = Math.abs(t - bt);
+    if (d < 0.3) flashO = Math.max(flashO, (1 - d / 0.3) * 0.18);
+  }
+  if (flashO <= 0) return null;
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: 'radial-gradient(circle, rgba(0,230,118,0.8), transparent 70%)',
+      opacity: flashO, pointerEvents: 'none', mixBlendMode: 'screen',
+    }}/>
+  );
+}
+
+function FilmOverlay() {
+  useTime();
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none',
+      backgroundImage: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 3px)',
+      mixBlendMode: 'screen',
+    }}/>
+  );
+}
+
+function PhaseProgress() {
+  const t = useTime();
+  const phases = [
+    { s: 0,  e: 9  }, { s: 9,  e: 18 }, { s: 18, e: 28 },
+    { s: 28, e: 38 }, { s: 38, e: 48 }, { s: 48, e: 56 },
+  ];
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, display: 'flex', pointerEvents: 'none', zIndex: 30 }}>
+      {phases.map((p, i) => {
+        const active = t >= p.s && t <= p.e;
+        const done = t > p.e;
+        const progress = active ? (t - p.s) / (p.e - p.s) : (done ? 1 : 0);
+        return (
+          <div key={i} style={{ flex: p.e - p.s, background: 'rgba(255,255,255,0.04)', position: 'relative', marginRight: 2 }}>
+            <div style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0,
+              width: (progress * 100) + '%',
+              background: active ? '#00e676' : 'rgba(0,230,118,0.3)',
+              boxShadow: active ? '0 0 10px rgba(0,230,118,0.6)' : 'none',
+            }}/>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MacChrome() {
+  const t = useTime();
+  // Blinking recording dot on the title — sells the "live capture" idea
+  const recOn = Math.floor(t * 1.6) % 2 === 0;
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 0, left: 0, right: 0, height: 40,
+      background: 'linear-gradient(180deg, #2a2e38 0%, #1f232c 100%)',
+      borderBottom: '1px solid rgba(0,0,0,0.4)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+      display: 'flex', alignItems: 'center',
+      padding: '0 14px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+      zIndex: 40,
+      userSelect: 'none',
+    }}>
+      {/* Traffic lights */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f56', boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,0.2)' }}/>
+        <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffbd2e', boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,0.2)' }}/>
+        <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#27c93f', boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,0.2)' }}/>
+      </div>
+
+      {/* Title — absolutely centered so traffic lights don't push it */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, textAlign: 'center',
+        pointerEvents: 'none',
+      }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600,
+          letterSpacing: '-0.005em',
+        }}>
+          {/* Recording dot */}
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: recOn ? '#ff3b30' : 'rgba(255,59,48,0.25)',
+            boxShadow: recOn ? '0 0 8px rgba(255,59,48,0.7)' : 'none',
+            transition: 'all 200ms',
+          }}/>
+          <span style={{
+            fontFamily: 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace',
+            fontSize: 12, color: '#00e676', fontWeight: 700,
+          }}>
+            ValueHunter
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.4)' }}>—</span>
+          <span style={{
+            fontFamily: 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace',
+            fontSize: 12, color: 'rgba(255,255,255,0.7)',
+          }}>
+            live_scanner.app
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>· REC</span>
+        </div>
+      </div>
+
+      {/* Right side: connection indicator */}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{
+          fontFamily: 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace',
+          fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em',
+        }}>
+          {Math.floor(t).toString().padStart(2, '0')}:{Math.floor((t * 100) % 100).toString().padStart(2, '0')}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div className="vh-stage" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+      <Stage width={1200} height={740} duration={56} background="#0a0e14" loop={true} autoplay={true} persistKey="vh-anim">
+        <MacChrome />
+        {/* All scenes shifted below the chrome bar (40px) */}
+        <div style={{ position: 'absolute', top: 40, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
+          <PhaseProgress />
+          <Scene1_Collection start={0}  end={9} />
+          <Scene2_EdgeCalc   start={9}  end={18} />
+          <Scene3_Filters    start={18} end={28} />
+          <Scene4_PDF        start={28} end={38} />
+          <Scene5_Send       start={38} end={48} />
+          <Scene6_Win        start={48} end={56} />
+          <TransitionFlash times={[9, 18, 28, 38, 48]} />
+          <FilmOverlay />
+        </div>
+      </Stage>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+
+</script>
+</body>
+</html>
