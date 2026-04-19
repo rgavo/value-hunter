@@ -373,6 +373,114 @@
     }
     .faq-a { font-size: 14px; color: var(--muted); line-height: 1.7; }
 
+    /* ── PRICING ── */
+    .pricing { padding: 96px 0; background: var(--bg2); text-align: center; }
+    .pricing-grid {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 52px;
+      align-items: stretch;
+    }
+    .price-card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 36px 32px;
+      width: 280px;
+      text-align: center;
+      position: relative;
+      transition: transform 0.2s, border-color 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .price-card:hover { transform: translateY(-4px); border-color: var(--border); }
+    .price-card.featured {
+      border-color: var(--green);
+      background: linear-gradient(160deg, rgba(0,230,118,0.07) 0%, var(--card) 60%);
+      transform: scale(1.04);
+    }
+    .price-card.featured:hover { transform: scale(1.04) translateY(-4px); }
+    .featured-badge {
+      position: absolute;
+      top: -14px; left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .price-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .price-value {
+      font-size: 52px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--text);
+    }
+    .price-value span { font-size: 22px; font-weight: 700; vertical-align: super; margin-right: 2px; color: var(--muted); }
+    .price-period {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 6px 0 24px;
+    }
+    .price-features {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 32px;
+      flex: 1;
+    }
+    .price-features li {
+      font-size: 14px;
+      color: var(--muted);
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .price-features li:last-child { border-bottom: none; }
+    .price-features .pcheck { color: var(--green); flex-shrink: 0; }
+    .price-btn {
+      display: block;
+      padding: 14px 0;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 15px;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+      margin-top: auto;
+    }
+    .price-btn.outline {
+      border: 2px solid var(--border);
+      color: var(--green);
+    }
+    .price-btn.outline:hover { border-color: var(--green); opacity: 0.85; }
+    .price-btn.solid {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: #000;
+      box-shadow: 0 0 28px rgba(0,230,118,0.3);
+    }
+    .price-btn.solid:hover { opacity: 0.9; transform: translateY(-1px); }
+    .pix-note {
+      margin-top: 28px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .pix-note strong { color: var(--green); }
+
     /* ── CTA FINAL ── */
     .cta-final {
       padding: 100px 0;
@@ -434,7 +542,7 @@
 <nav>
   <div class="inner">
     <div class="logo">Value<span>Hunter</span></div>
-    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="nav-cta" target="_blank" rel="noopener">Quero Entrar</a>
+    <a href="#pricing" class="nav-cta" ">Quero Entrar</a>
   </div>
 </nav>
 
@@ -463,7 +571,7 @@
         Edge mínimo por aposta
       </div>
     </div>
-    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="cta-btn" target="_blank" rel="noopener">Quero receber o relatório diário →</a>
+    <a href="#pricing" class="cta-btn" ">Quero receber o relatório diário →</a>
     <p class="disclaimer-hero">Resultado do período de teste (1 mês). Resultados passados não garantem retornos futuros.</p>
   </div>
 </section>
@@ -707,13 +815,71 @@
   </div>
 </section>
 
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="tag">Planos</div>
+    <h2 class="section-title">Escolha seu plano</h2>
+    <p class="section-sub">Pague via PIX ou cartão de crédito. Acesso imediato após a confirmação.</p>
+    <div class="pricing-grid">
+
+      <!-- DIÁRIO -->
+      <div class="price-card">
+        <div class="price-label">Diário</div>
+        <div class="price-value"><span>R$</span>12<small style="font-size:28px">,90</small></div>
+        <div class="price-period">acesso por 1 dia</div>
+        <ul class="price-features">
+          <li><span class="pcheck">✓</span> Relatório PDF do dia</li>
+          <li><span class="pcheck">✓</span> Edge e probabilidade calculados</li>
+          <li><span class="pcheck">✓</span> Stake sugerido por aposta</li>
+          <li><span class="pcheck">✓</span> PIX ou cartão</li>
+        </ul>
+        <a href="https://pay.kiwify.com.br/01nKnMo" class="price-btn outline" target="_blank" rel="noopener">Comprar acesso diário</a>
+      </div>
+
+      <!-- SEMANAL -->
+      <div class="price-card featured">
+        <div class="featured-badge">⭐ Mais popular</div>
+        <div class="price-label">Semanal</div>
+        <div class="price-value"><span>R$</span>49<small style="font-size:28px">,90</small></div>
+        <div class="price-period">acesso por 7 dias</div>
+        <ul class="price-features">
+          <li><span class="pcheck">✓</span> 7 relatórios PDF</li>
+          <li><span class="pcheck">✓</span> Edge e probabilidade calculados</li>
+          <li><span class="pcheck">✓</span> Stake sugerido por aposta</li>
+          <li><span class="pcheck">✓</span> Meta-análise semanal inclusa</li>
+          <li><span class="pcheck">✓</span> PIX ou cartão</li>
+        </ul>
+        <a href="https://pay.kiwify.com.br/t4bxA6o" class="price-btn solid" target="_blank" rel="noopener">Comprar acesso semanal</a>
+      </div>
+
+      <!-- MENSAL -->
+      <div class="price-card">
+        <div class="price-label">Mensal</div>
+        <div class="price-value"><span>R$</span>97<small style="font-size:28px">,00</small></div>
+        <div class="price-period">acesso por 30 dias</div>
+        <ul class="price-features">
+          <li><span class="pcheck">✓</span> ~30 relatórios PDF</li>
+          <li><span class="pcheck">✓</span> Edge e probabilidade calculados</li>
+          <li><span class="pcheck">✓</span> Stake sugerido por aposta</li>
+          <li><span class="pcheck">✓</span> Meta-análise contínua</li>
+          <li><span class="pcheck">✓</span> PIX ou cartão</li>
+        </ul>
+        <a href="https://pay.kiwify.com.br/PpjUqq6" class="price-btn outline" target="_blank" rel="noopener">Comprar acesso mensal</a>
+      </div>
+
+    </div>
+    <p class="pix-note">💚 <strong>PIX recomendado</strong> — aprovação instantânea. Cartão aceito sem parcelamento.</p>
+  </div>
+</section>
+
 <!-- CTA FINAL -->
 <section class="cta-final" id="cta">
   <div class="container">
     <div class="tag">Comece agora</div>
     <h2 class="section-title">Pare de apostar no escuro.<br><span class="green">Aposte com edge.</span></h2>
     <p>Receba diariamente as apostas com maior probabilidade de valor real no futebol, calculadas quantitativamente e prontas para executar.</p>
-    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="cta-btn" target="_blank" rel="noopener">Quero receber o Value Hunter →</a>
+    <a href="#pricing" class="cta-btn" ">Ver planos →</a>
     <p class="risk-note">Aposte com responsabilidade. Jogo pode ser viciante. Resultados passados não garantem lucros futuros.</p>
   </div>
 </section>
