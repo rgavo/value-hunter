@@ -481,6 +481,103 @@
     }
     .pix-note strong { color: var(--green); }
 
+    /* ── PROMO FLASH ── */
+    .promo-badge {
+      position: absolute;
+      top: -14px; left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #ff4d4d, #c0392b);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 100px;
+      white-space: nowrap;
+      animation: pulse-badge 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse-badge {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,77,0.5); }
+      50%       { box-shadow: 0 0 0 7px rgba(255,77,77,0); }
+    }
+    .price-old {
+      font-size: 15px;
+      color: var(--muted);
+      text-decoration: line-through;
+      margin-bottom: 2px;
+    }
+    .price-card.promo {
+      border-color: #ff4d4d;
+      background: linear-gradient(160deg, rgba(255,77,77,0.07) 0%, var(--card) 60%);
+      transform: scale(1.04);
+    }
+    .price-card.promo:hover { transform: scale(1.04) translateY(-4px); }
+    .price-btn.promo-btn {
+      background: linear-gradient(135deg, #ff4d4d, #c0392b);
+      color: #fff;
+      box-shadow: 0 0 28px rgba(255,77,77,0.35);
+    }
+    .price-btn.promo-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .countdown-wrap {
+      margin: 14px 0 4px;
+      background: rgba(255,77,77,0.1);
+      border: 1px solid rgba(255,77,77,0.25);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .countdown-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #ff6b6b;
+      margin-bottom: 6px;
+    }
+    .countdown-digits {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      align-items: center;
+    }
+    .cd-block {
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      padding: 5px 10px;
+      text-align: center;
+      min-width: 48px;
+    }
+    .cd-num {
+      font-size: 22px;
+      font-weight: 900;
+      color: #ff6b6b;
+      line-height: 1;
+      display: block;
+      font-variant-numeric: tabular-nums;
+    }
+    .cd-unit {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 2px;
+      display: block;
+    }
+    .cd-sep {
+      font-size: 20px;
+      font-weight: 900;
+      color: #ff6b6b;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .expired-msg {
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
+      padding: 8px 0;
+    }
+
     /* ── CTA FINAL ── */
     .cta-final {
       padding: 100px 0;
@@ -834,11 +931,24 @@
       </div>
 
       <!-- SEMANAL -->
-      <div class="price-card featured">
-        <div class="featured-badge">⭐ Mais popular</div>
+      <div class="price-card promo" id="semanal-card">
+        <div class="promo-badge">🔥 Promoção Relâmpago</div>
         <div class="price-label">Semanal</div>
-        <div class="price-value"><span>R$</span>49<small style="font-size:28px">,90</small></div>
+        <div class="price-old">De R$ 49,90</div>
+        <div class="price-value"><span>R$</span>35<small style="font-size:28px">,90</small></div>
         <div class="price-period">acesso por 7 dias</div>
+
+        <div class="countdown-wrap">
+          <div class="countdown-label">⏱ Oferta expira em</div>
+          <div class="countdown-digits">
+            <div class="cd-block"><span class="cd-num" id="cd-h">00</span><span class="cd-unit">horas</span></div>
+            <div class="cd-sep">:</div>
+            <div class="cd-block"><span class="cd-num" id="cd-m">00</span><span class="cd-unit">min</span></div>
+            <div class="cd-sep">:</div>
+            <div class="cd-block"><span class="cd-num" id="cd-s">00</span><span class="cd-unit">seg</span></div>
+          </div>
+        </div>
+
         <ul class="price-features">
           <li><span class="pcheck">✓</span> 7 relatórios PDF</li>
           <li><span class="pcheck">✓</span> Edge e probabilidade calculados</li>
@@ -846,7 +956,7 @@
           <li><span class="pcheck">✓</span> Meta-análise semanal inclusa</li>
           <li><span class="pcheck">✓</span> PIX ou cartão</li>
         </ul>
-        <a href="https://pay.kiwify.com.br/t4bxA6o" class="price-btn solid" target="_blank" rel="noopener">Comprar acesso semanal</a>
+        <a href="https://pay.kiwify.com.br/pp3NTgG" class="price-btn promo-btn" id="semanal-btn" target="_blank" rel="noopener">Garantir por R$ 35,90 →</a>
       </div>
 
       <!-- MENSAL -->
@@ -891,6 +1001,58 @@
     </p>
   </div>
 </footer>
+
+<script>
+  (function() {
+    // Deadline: hoje 23h59m59s no horário local do visitante
+    var now    = new Date();
+    var target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function tick() {
+      var diff = target - Date.now();
+
+      if (diff <= 0) {
+        // Promoção encerrada — reverte card para versão normal
+        var card = document.getElementById('semanal-card');
+        var btn  = document.getElementById('semanal-btn');
+        if (card) {
+          card.className = 'price-card featured';
+          var badge = card.querySelector('.promo-badge');
+          if (badge) badge.remove();
+          var oldPrice = card.querySelector('.price-old');
+          if (oldPrice) oldPrice.remove();
+          var priceVal = card.querySelector('.price-value');
+          if (priceVal) priceVal.innerHTML = '<span>R$</span>49<small style="font-size:28px">,90</small>';
+          var cdWrap = card.querySelector('.countdown-wrap');
+          if (cdWrap) cdWrap.innerHTML = '<p class="expired-msg">Promoção encerrada</p>';
+        }
+        if (btn) {
+          btn.href = 'https://pay.kiwify.com.br/t4bxA6o';
+          btn.className = 'price-btn solid';
+          btn.textContent = 'Comprar acesso semanal';
+        }
+        return;
+      }
+
+      var h = Math.floor(diff / 3600000);
+      var m = Math.floor((diff % 3600000) / 60000);
+      var s = Math.floor((diff % 60000) / 1000);
+
+      var elH = document.getElementById('cd-h');
+      var elM = document.getElementById('cd-m');
+      var elS = document.getElementById('cd-s');
+      if (elH) elH.textContent = pad(h);
+      if (elM) elM.textContent = pad(m);
+      if (elS) elS.textContent = pad(s);
+
+      setTimeout(tick, 1000);
+    }
+
+    tick();
+  })();
+</script>
 
 </body>
 </html>
