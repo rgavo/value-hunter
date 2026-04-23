@@ -118,11 +118,11 @@
   /* ── CHARTS ROW ── */
   .charts-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 16px;
     margin-bottom: 32px;
+    max-width: 420px;
   }
-  @media(max-width:700px){ .charts-row { grid-template-columns:1fr; } }
 
   .chart-card {
     background: var(--card);
@@ -142,14 +142,6 @@
   .donut-legend { display:flex; flex-direction:column; gap:10px; }
   .legend-item { display:flex; align-items:center; gap:8px; font-size:14px; }
   .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-
-  /* Banca evolution bars */
-  .bar-list { display:flex; flex-direction:column; gap:8px; }
-  .bar-row { display:flex; align-items:center; gap:10px; font-size:12px; }
-  .bar-label { width:72px; text-align:right; color:var(--muted); flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .bar-track { flex:1; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden; }
-  .bar-fill { height:100%; border-radius:4px; transition:width 0.6s ease; }
-  .bar-val { width:60px; font-size:11px; color:var(--text); flex-shrink:0; }
 
   /* ── BET TABLE ── */
   .section-head {
@@ -301,14 +293,6 @@
       </div>
     </div>
 
-    <!-- BANCA EVOLUTION -->
-    <div class="chart-card">
-      <div class="chart-title">Evolução da Banca (últimas entradas)</div>
-      <div class="bar-list" id="banca-bars">
-        <div class="empty" style="padding:20px 0"><p>Aguardando entradas...</p></div>
-      </div>
-    </div>
-
   </div>
 
   <!-- BET HISTORY TABLE -->
@@ -417,7 +401,7 @@ function render() {
   document.getElementById('stat-roi-sub').textContent = n + ' entrada' + (n!==1?'s':'') + ' registrada' + (n!==1?'s':'');
 
   const profitEl = document.getElementById('stat-profit');
-  profitEl.textContent = (totalProfit>=0?'+':'') + 'R$ '+Math.abs(totalProfit).toFixed(2).replace('.',',');
+  profitEl.textContent = (totalProfit>=0 ? '+R$ ' : '-R$ ') + Math.abs(totalProfit).toFixed(2).replace('.',',');
   profitEl.className = 'stat-value ' + (totalProfit>=0?'positive':'negative');
 
   document.getElementById('stat-wins').textContent = wins;
@@ -446,33 +430,6 @@ function render() {
   document.getElementById('legend-wins').textContent = 'Acertos: '+wins;
   document.getElementById('legend-losses').textContent = 'Erros: '+losses;
   document.getElementById('legend-total').textContent = 'Total: '+n+' entradas';
-
-  // ── banca bars ──
-  let runningBankroll = CONFIG.startingBankroll;
-  const bancaHistory = [{label:'Inicial', val: runningBankroll}];
-  bets.forEach((b,i) => {
-    runningBankroll += b._profit;
-    bancaHistory.push({ label: b.date || ('#'+(i+1)), val: runningBankroll });
-  });
-
-  const maxVal = Math.max(...bancaHistory.map(x=>x.val));
-  const minVal = Math.min(...bancaHistory.map(x=>x.val));
-  const range  = maxVal - minVal || 1;
-
-  const recent = bancaHistory.slice(-8); // últimas 8
-  const barsEl = document.getElementById('banca-bars');
-  barsEl.innerHTML = '';
-  recent.forEach(item => {
-    const pct = ((item.val - minVal)/range * 80 + 10).toFixed(1);
-    const color = item.val >= CONFIG.startingBankroll ? 'var(--green)' : 'var(--red)';
-    const row = document.createElement('div');
-    row.className = 'bar-row';
-    row.innerHTML = `
-      <div class="bar-label">${item.label}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
-      <div class="bar-val">${fmtR(item.val)}</div>`;
-    barsEl.appendChild(row);
-  });
 
   // ── table ──
   document.getElementById('bet-count').textContent = n + (n===1?' entrada':' entradas');
