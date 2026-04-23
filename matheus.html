@@ -356,14 +356,19 @@
 // DADOS — editar apenas este bloco para atualizar
 // ═══════════════════════════════════════════════════════
 const CONFIG = {
-  startingBankroll: 300   // banca inicial em R$
+  startingBankroll: 500   // banca inicial em R$
 };
 
 // Cada entrada:
 // { date, game, market, odds, stake, result: 'W' | 'L', confidence: 'ALTA' | 'MÉDIA' | 'OBS' }
 const BETS = [
-  // Exemplo (remover quando houver dados reais):
-  // { date:'22/04/2026', game:'Flamengo x Palmeiras', market:'Over 2.5 Gols', odds:1.85, stake:30, result:'W', confidence:'MÉDIA' },
+  { date:'22/04/2026', game:'Bayern Leverkusen vs Bayern München', market:'Over 3.5 Cartões Amarelos', odds:1.80, stake:50, result:'L', confidence:'MÉDIA' },
+  { date:'22/04/2026', game:'Atalanta vs Lazio',                  market:'Over 2.5 Gols',              odds:1.85, stake:50, result:'L', confidence:'MÉDIA' },
+  { date:'22/04/2026', game:'Bournemouth vs Leeds',               market:'Ambas Marcam (Sim)',          odds:2.10, stake:50, result:'W', confidence:'MÉDIA' },
+  { date:'22/04/2026', game:'Barcelona vs Celta de Vigo',         market:'Barcelona +2.5 Gols',        odds:1.72, stake:50, result:'L', confidence:'MÉDIA' },
+  { date:'23/04/2026', game:'Atlético MG vs Ceará',               market:'Ambas Marcam (Não)',          odds:1.75, stake:50, result:'W', confidence:'MÉDIA' },
+  { date:'23/04/2026', game:'Rayo Vallecano vs Espanyol',         market:'Under 2.5 Gols',             odds:1.72, stake:50, result:'W', confidence:'MÉDIA' },
+  { date:'23/04/2026', game:'Levante vs Sevilla',                 market:'Vitória Levante',            odds:2.45, stake:50, result:'W', confidence:'MÉDIA' },
 ];
 
 // ═══════════════════════════════════════════════════════
