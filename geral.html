@@ -59,6 +59,21 @@
     border-top:1px solid var(--border);
   }
   .footer-cta p { font-size:14px; color:var(--muted); margin-bottom:18px; }
+  .lp-btn-lg {
+    display:inline-flex; align-items:center; gap:10px;
+    background:linear-gradient(135deg,var(--green),var(--green2));
+    color:#000; font-weight:900; font-size:16px;
+    padding:16px 32px; border-radius:10px; text-decoration:none;
+    transition:opacity .2s, transform .2s;
+    box-shadow:0 0 32px rgba(0,230,118,.4);
+    white-space:nowrap;
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+  .lp-btn-lg:hover { opacity:.9; transform:translateY(-2px); }
+  @keyframes glow-pulse {
+    0%,100% { box-shadow:0 0 24px rgba(0,230,118,.35); }
+    50%      { box-shadow:0 0 48px rgba(0,230,118,.65); }
+  }
 
   /* MAIN */
   main { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:32px 24px 0; }
@@ -134,7 +149,7 @@
   </div>
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
     <div class="last-update">Última atualização: <strong id="last-update-date">—</strong></div>
-    <a href="https://rgavo.github.io/value-hunter/" class="lp-btn" target="_blank" rel="noopener">🚀 Ver Landing Page</a>
+    <a href="https://rgavo.github.io/value-hunter/" class="lp-btn" target="_blank" rel="noopener">📈 Quero receber essas análises</a>
   </div>
 </header>
 
@@ -243,8 +258,8 @@
 </main>
 
 <div class="footer-cta">
-  <p>Quer começar a receber as análises diárias?</p>
-  <a href="https://rgavo.github.io/value-hunter/" class="lp-btn" target="_blank" rel="noopener">🚀 Acessar o Value Hunter</a>
+  <p>Esses são os resultados reais. Você também pode ter acesso às análises diárias.</p>
+  <a href="https://rgavo.github.io/value-hunter/" class="lp-btn-lg" target="_blank" rel="noopener">📈 Quero receber essas análises</a>
 </div>
 <footer><p>Value Hunter · Controle Geral · Uso interno</p></footer>
 
