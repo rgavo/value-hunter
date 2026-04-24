@@ -43,6 +43,22 @@
   .logo-sub { font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-top:1px; }
   .last-update { font-size:12px; color:var(--muted); text-align:right; }
   .last-update strong { color:var(--text); }
+  .lp-btn {
+    display:inline-flex; align-items:center; gap:8px;
+    background:linear-gradient(135deg,var(--green),var(--green2));
+    color:#000; font-weight:800; font-size:13px;
+    padding:10px 20px; border-radius:8px; text-decoration:none;
+    transition:opacity .2s, transform .2s;
+    box-shadow:0 0 20px rgba(0,230,118,.3);
+    white-space:nowrap;
+  }
+  .lp-btn:hover { opacity:.88; transform:translateY(-1px); }
+  .footer-cta {
+    position:relative; z-index:1;
+    text-align:center; margin-top:48px; padding:40px 24px;
+    border-top:1px solid var(--border);
+  }
+  .footer-cta p { font-size:14px; color:var(--muted); margin-bottom:18px; }
 
   /* MAIN */
   main { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:32px 24px 0; }
@@ -116,7 +132,10 @@
       <div class="logo-sub">Controle Geral</div>
     </div>
   </div>
-  <div class="last-update">Última atualização: <strong id="last-update-date">—</strong></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div class="last-update">Última atualização: <strong id="last-update-date">—</strong></div>
+    <a href="https://rgavo.github.io/value-hunter/" class="lp-btn" target="_blank" rel="noopener">🚀 Ver Landing Page</a>
+  </div>
 </header>
 
 <main>
@@ -223,6 +242,10 @@
 
 </main>
 
+<div class="footer-cta">
+  <p>Quer começar a receber as análises diárias?</p>
+  <a href="https://rgavo.github.io/value-hunter/" class="lp-btn" target="_blank" rel="noopener">🚀 Acessar o Value Hunter</a>
+</div>
 <footer><p>Value Hunter · Controle Geral · Uso interno</p></footer>
 
 <script>
