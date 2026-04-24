@@ -241,7 +241,7 @@
     <div class="stat-card">
       <div class="stat-label">Lucro Total</div>
       <div class="stat-value" id="stat-profit">—</div>
-      <div class="stat-sub" id="stat-profit-sub">sobre o total apostado</div>
+      <div class="stat-sub" id="stat-profit-sub">em unidades</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Acertos</div>
@@ -260,8 +260,8 @@
     </div>
     <div class="stat-card">
       <div class="stat-label">Total Apostado</div>
-      <div class="stat-value" id="stat-staked">R$ 0</div>
-      <div class="stat-sub" id="stat-avg-stake">stake médio: —</div>
+      <div class="stat-value" id="stat-staked">0u</div>
+      <div class="stat-sub" id="stat-avg-stake">stake por entrada: 1u</div>
     </div>
   </div>
 
@@ -346,24 +346,22 @@ const CONFIG = {
 // Cada entrada:
 // { date, game, market, odds, stake, result: 'W' | 'L', confidence: 'ALTA' | 'MÉDIA' | 'OBS' }
 const BETS = [
-  { date:'22/04/2026', game:'Bayern Leverkusen vs Bayern München', market:'Over 3.5 Cartões Amarelos', odds:1.80, stake:50, result:'L', confidence:'MÉDIA' },
-  { date:'22/04/2026', game:'Atalanta vs Lazio',                  market:'Over 2.5 Gols',              odds:1.85, stake:50, result:'L', confidence:'MÉDIA' },
-  { date:'22/04/2026', game:'Bournemouth vs Leeds',               market:'Ambas Marcam (Sim)',          odds:2.10, stake:50, result:'W', confidence:'MÉDIA' },
-  { date:'22/04/2026', game:'Barcelona vs Celta de Vigo',         market:'Barcelona +2.5 Gols',        odds:1.72, stake:50, result:'L', confidence:'MÉDIA' },
-  { date:'23/04/2026', game:'Atlético MG vs Ceará',               market:'Ambas Marcam (Não)',          odds:1.75, stake:50, result:'L', confidence:'MÉDIA' },
-  { date:'23/04/2026', game:'Rayo Vallecano vs Espanyol',         market:'Under 2.5 Gols',             odds:1.72, stake:50, result:'W', confidence:'MÉDIA' },
-  { date:'23/04/2026', game:'Levante vs Sevilla',                 market:'Vitória Levante',            odds:2.45, stake:50, result:'W', confidence:'MÉDIA' },
+  { date:'22/04/2026', game:'Bayern Leverkusen vs Bayern München', market:'Over 3.5 Cartões Amarelos', odds:1.80, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'22/04/2026', game:'Atalanta vs Lazio',                  market:'Over 2.5 Gols',              odds:1.85, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'22/04/2026', game:'Bournemouth vs Leeds',               market:'Ambas Marcam (Sim)',          odds:2.10, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'22/04/2026', game:'Barcelona vs Celta de Vigo',         market:'Barcelona +2.5 Gols',        odds:1.72, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'23/04/2026', game:'Atlético MG vs Ceará',               market:'Ambas Marcam (Não)',          odds:1.75, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'23/04/2026', game:'Rayo Vallecano vs Espanyol',         market:'Under 2.5 Gols',             odds:1.72, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'23/04/2026', game:'Levante vs Sevilla',                 market:'Vitória Levante',            odds:2.45, stake:1, result:'W', confidence:'MÉDIA' },
 ];
 
 // ═══════════════════════════════════════════════════════
 // ENGINE — não precisa editar abaixo
 // ═══════════════════════════════════════════════════════
-function fmt(n, prefix='R$ ') {
-  const abs = Math.abs(n).toFixed(2).replace('.',',');
-  const sign = n >= 0 ? '+' : '-';
-  return prefix + sign + abs;
+function fmtU(n) {
+  // formata em unidades: +0,75u / -1,00u
+  return (n >= 0 ? '+' : '-') + Math.abs(n).toFixed(2).replace('.',',') + 'u';
 }
-function fmtR(n){ return 'R$ ' + n.toFixed(2).replace('.',','); }
 function pad(n){ return String(n).padStart(2,'0'); }
 
 function render() {
@@ -401,7 +399,7 @@ function render() {
   document.getElementById('stat-roi-sub').textContent = n + ' entrada' + (n!==1?'s':'') + ' registrada' + (n!==1?'s':'');
 
   const profitEl = document.getElementById('stat-profit');
-  profitEl.textContent = (totalProfit>=0 ? '+R$ ' : '-R$ ') + Math.abs(totalProfit).toFixed(2).replace('.',',');
+  profitEl.textContent = fmtU(totalProfit);
   profitEl.className = 'stat-value ' + (totalProfit>=0?'positive':'negative');
 
   document.getElementById('stat-wins').textContent = wins;
@@ -409,8 +407,8 @@ function render() {
   document.getElementById('stat-winrate').textContent = 'taxa de acerto: '+winrate.toFixed(0)+'%';
   document.getElementById('stat-total-bets').textContent = 'total de entradas: '+n;
   document.getElementById('stat-avg-odd').textContent = avgOdd.toFixed(2).replace('.',',');
-  document.getElementById('stat-staked').textContent = 'R$ '+totalStaked.toFixed(2).replace('.',',');
-  document.getElementById('stat-avg-stake').textContent = 'stake médio: R$ '+avgStake.toFixed(0);
+  document.getElementById('stat-staked').textContent = totalStaked.toFixed(0)+'u';
+  document.getElementById('stat-avg-stake').textContent = 'stake por entrada: 1u';
 
   // ── donut ──
   const circ = 251.2;
@@ -439,8 +437,8 @@ function render() {
     const idx = n - i;
     const isWin = b.result === 'W';
     const profitStr = isWin
-      ? '<span class="profit-pos">+R$ '+(b._profit.toFixed(2).replace('.',','))+'</span>'
-      : '<span class="profit-neg">-R$ '+(Math.abs(b._profit).toFixed(2).replace('.',','))+'</span>';
+      ? '<span class="profit-pos">'+fmtU(b._profit)+'</span>'
+      : '<span class="profit-neg">'+fmtU(b._profit)+'</span>';
 
     const confBadge = {
       'ALTA':  '<span class="badge-alta">ALTA</span>',
@@ -455,7 +453,7 @@ function render() {
       <td style="font-weight:600">${b.game}</td>
       <td style="color:var(--muted);font-size:12px">${b.market}</td>
       <td style="font-weight:700;color:var(--gold)">${b.odds.toFixed(2).replace('.',',')}</td>
-      <td>R$ ${b.stake}</td>
+      <td>1u</td>
       <td>${confBadge}</td>
       <td>${isWin ? '<span class="badge-w">✓ WIN</span>' : '<span class="badge-l">✗ LOSS</span>'}</td>
       <td>${profitStr}</td>`;
