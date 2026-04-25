@@ -143,6 +143,19 @@
   .legend-item { display:flex; align-items:center; gap:8px; font-size:14px; }
   .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 
+  /* ── BREAKDOWN ── */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:32px; }
+  @media(max-width:700px){ .two-col { grid-template-columns:1fr; } }
+  .breakdown-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
+  .breakdown-title { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:16px; }
+  .bk-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:13px; }
+  .bk-row:last-child { border-bottom:none; }
+  .bk-name { flex:1; font-weight:600; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bk-wl { font-size:11px; color:var(--muted); white-space:nowrap; }
+  .bk-profit { font-weight:700; font-size:13px; white-space:nowrap; min-width:60px; text-align:right; }
+  .bk-bar-wrap { width:60px; height:6px; background:rgba(255,255,255,.05); border-radius:3px; overflow:hidden; flex-shrink:0; }
+  .bk-bar { height:100%; border-radius:3px; }
+
   /* ── BET TABLE ── */
   .section-head {
     display:flex; align-items:center; justify-content:space-between;
@@ -295,6 +308,18 @@
 
   </div>
 
+  <!-- BREAKDOWN LIGA + MERCADO -->
+  <div class="two-col">
+    <div class="breakdown-card">
+      <div class="breakdown-title">Performance por Liga</div>
+      <div id="liga-breakdown"></div>
+    </div>
+    <div class="breakdown-card">
+      <div class="breakdown-title">Performance por Tipo de Mercado</div>
+      <div id="mercado-breakdown"></div>
+    </div>
+  </div>
+
   <!-- BET HISTORY TABLE -->
   <div class="section-head">
     <h2>Histórico de Entradas</h2>
@@ -436,6 +461,74 @@ function render() {
   document.getElementById('legend-wins').textContent = 'Acertos: '+wins;
   document.getElementById('legend-losses').textContent = 'Erros: '+losses;
   document.getElementById('legend-total').textContent = 'Total: '+n+' entradas';
+
+  // ── breakdown helpers ──
+  function getMarketGroup(m) {
+    m = m.toLowerCase();
+    if (m.includes('ambas marcam'))                                       return 'Ambas Marcam';
+    if (m.includes('over')||m.includes('mais de')||m.includes('under')||m.includes('menos de')) return 'Over/Under Gols';
+    if (m.includes('escanteio'))                                          return 'Escanteios';
+    if (m.includes('cartão')||m.includes('cartoes')||m.includes('amarelo')) return 'Cartões';
+    if (m.includes('marcar')||m.includes('gol'))                          return 'Marcador';
+    if (m.includes('vitória')||m.includes('vitoria')||m.includes('vence')||m.includes('win')) return 'Resultado';
+    if (m.includes('handicap'))                                           return 'Handicap';
+    return 'Outros';
+  }
+  function renderBreakdown(map, elId) {
+    const entries = Object.entries(map).sort((a,b)=>b[1].p-a[1].p);
+    const maxAbs  = Math.max(...entries.map(([,v])=>Math.abs(v.p)), 0.01);
+    const el = document.getElementById(elId);
+    el.innerHTML = '';
+    entries.forEach(([name,v]) => {
+      const pct   = (Math.abs(v.p)/maxAbs*100).toFixed(1);
+      const color = v.p>=0 ? 'var(--green)' : 'var(--red)';
+      el.innerHTML += `<div class="bk-row">
+        <div class="bk-name">${name}</div>
+        <div class="bk-bar-wrap"><div class="bk-bar" style="width:${pct}%;background:${color}"></div></div>
+        <div class="bk-wl">${v.w}W/${v.l}L</div>
+        <div class="bk-profit" style="color:${color}">${fmtU(v.p)}</div>
+      </div>`;
+    });
+  }
+
+  // build liga + mercado maps
+  const ligaMap = {}, mercMap = {};
+  bets.forEach(b => {
+    const lg = b.game.split(' vs ')[0] ? (b.confidence||'') : '';
+    // use a fake liga from game — we don't have liga in Matheus data, group by market instead
+    const mg = getMarketGroup(b.market);
+    if (!mercMap[mg]) mercMap[mg] = {w:0,l:0,p:0};
+    mercMap[mg][b.result==='W'?'w':'l']++;
+    mercMap[mg].p += b._profit;
+  });
+
+  // for liga, derive from known games
+  const ligaHints = {
+    'Bundesliga':       ['Augsburg','Stuttgart','Borussia','Mainz','Bayern'],
+    'Premier League':   ['Arsenal','Chelsea','Liverpool','Bournemouth','Manchester','Sunderland','Brighton','Leeds','Newcastle'],
+    'La Liga':          ['Barcelona','Real Madrid','Sevilla','Valencia','Rayo','Atletico','Girona','Real Betis','Celta','Levante','Getafe'],
+    'Ligue 1':          ['PSG','Marseille','Monaco','Toulouse','Paris FC','Metz'],
+    'Serie A Italia':   ['Inter','Roma','Atalanta','Lecce','Fiorentina'],
+    'Liga Portugal':    ['Sporting','Benfica','Casa Pia'],
+    'Champions League': ['Bayern München','Liverpool','Arsenal','Atletico Madrid'],
+    'Copa do Brasil':   ['Atletico MG','Ceará','Paysandu','Vasco'],
+    'Copa da Alemanha': ['Leverkusen'],
+    'Copa da Italia':   ['Atalanta vs Lazio'],
+    'Libertadores':     ['Cusco','Flamengo'],
+    'Brasileirao A':    ['Fluminense','Corinthians','Internacional','Vasco','Botafogo','Mirassol','Santos'],
+  };
+  bets.forEach(b => {
+    let liga = 'Outros';
+    for (const [l, hints] of Object.entries(ligaHints)) {
+      if (hints.some(h => b.game.includes(h))) { liga = l; break; }
+    }
+    if (!ligaMap[liga]) ligaMap[liga] = {w:0,l:0,p:0};
+    ligaMap[liga][b.result==='W'?'w':'l']++;
+    ligaMap[liga].p += b._profit;
+  });
+
+  renderBreakdown(ligaMap, 'liga-breakdown');
+  renderBreakdown(mercMap, 'mercado-breakdown');
 
   // ── table ──
   document.getElementById('bet-count').textContent = n + (n===1?' entrada':' entradas');
