@@ -185,7 +185,7 @@
     <div class="stat-card">
       <div class="stat-label">Total Apostado</div>
       <div class="stat-value blu" id="s-staked">0u</div>
-      <div class="stat-sub">1u por entrada</div>
+      <div class="stat-sub">total apostado em unidades</div>
     </div>
   </div>
 
@@ -329,6 +329,8 @@ const BETS = [
   { date:'25/04/2026', liga:'Bundesliga',        game:'Mainz vs Bayern München',            market:'Over 3.5 Gols',                      odds:2.00, result:'W' },
   { date:'25/04/2026', liga:'Premier League',    game:'Liverpool vs Crystal Palace',        market:'Vitória Liverpool e Over 1.5 Gols',  odds:1.55, result:'W' },
   { date:'25/04/2026', liga:'Premier League',    game:'Arsenal vs Newcastle',               market:'Vitória Arsenal',                    odds:1.44, result:'W' },
+  { date:'25/04/2026', liga:'Brasileirao A',     game:'Bahia vs Santos',                    market:'Bahia Over 5.5 Cantos',              odds:1.72, stake:2.5, result:'L' },
+  { date:'25/04/2026', liga:'MLS',               game:'Inter Miami vs New England',         market:'Ambas Marcam (Sim)',                  odds:1.62, stake:2.5, result:'W' },
 ];
 
 // ═══════════════════════════════════════════════
@@ -362,12 +364,14 @@ function render() {
   if (!n) return;
 
   // compute
-  let wins=0, losses=0, totalProfit=0, oddSum=0;
+  let wins=0, losses=0, totalProfit=0, totalStaked=0, oddSum=0;
   const ligaMap = {}, mercMap = {};
 
   bets.forEach(b => {
-    b._profit = b.result==='W' ? (b.odds-1) : -1;
-    totalProfit += b._profit;
+    const s = b.stake || 1;
+    b._profit = b.result==='W' ? s*(b.odds-1) : -s;
+    totalProfit  += b._profit;
+    totalStaked  += s;
     oddSum += b.odds;
     if (b.result==='W') wins++; else losses++;
 
@@ -383,7 +387,7 @@ function render() {
     mercMap[mg].p += b._profit;
   });
 
-  const roi = (totalProfit/n)*100;
+  const roi = (totalProfit/totalStaked)*100;
   const wr  = (wins/n)*100;
   const avgO = oddSum/n;
 
@@ -402,7 +406,7 @@ function render() {
   document.getElementById('s-wr').textContent     = 'taxa: '+wr.toFixed(1)+'%';
   document.getElementById('s-total').textContent  = 'total: '+n+' entradas';
   document.getElementById('s-avgodds').textContent = avgO.toFixed(2).replace('.',',');
-  document.getElementById('s-staked').textContent  = n+'u';
+  document.getElementById('s-staked').textContent  = (+totalStaked.toFixed(2))+'u';
 
   // ── donut ──
   const circ=251.2, wFrac=wins/n;
