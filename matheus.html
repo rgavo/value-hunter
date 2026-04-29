@@ -399,6 +399,9 @@ const BETS = [
   { date:'27/04/2026', game:'Espanyol vs Levante',                market:'3+ Defesas Dimitrovic',              odds:1.72, stake:3,   result:'W', confidence:'ALTA'  },
   { date:'27/04/2026', game:'Funkbol vs Nyvelados',               market:'Vitória Funkbol',                    odds:2.12, stake:3,   result:'W', confidence:'ALTA'  },
   { date:'27/04/2026', game:'Desimpain vs Capim',                 market:'Vitória Desimpain',                  odds:1.66, stake:3,   result:'W', confidence:'ALTA'  },
+  { date:'28/04/2026', game:'PSG vs Bayern e Libertad vs Del Valle',          market:'Over 2.5 Gols e X2 Del Valle',       odds:2.02, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'28/04/2026', game:'PSG vs Bayern e Universidad vs Rosario Central', market:'Ambas Marcam (Sim) e Over 1.5 Gols', odds:1.85, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'28/04/2026', game:'Universidad vs Rosario Central',                 market:'Vitória Rosario Central',            odds:1.75, stake:1, result:'W', confidence:'MÉDIA' },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -524,11 +527,12 @@ function render() {
     'Ligue 1':          ['PSG','Marseille','Monaco','Toulouse','Paris FC','Metz'],
     'Serie A Italia':   ['Inter','Roma','Atalanta','Lecce','Fiorentina'],
     'Liga Portugal':    ['Sporting','Benfica','Casa Pia'],
+    'Champions e Libertadores': ['PSG vs Bayern e','Bayern e Libertad','Bayern e Universidad'],
     'Champions League': ['Bayern München','Liverpool','Arsenal','Atletico Madrid'],
     'Copa do Brasil':   ['Atletico MG','Ceará','Paysandu','Vasco'],
     'Copa da Alemanha': ['Leverkusen'],
     'Copa da Italia':   ['Atalanta vs Lazio'],
-    'Libertadores':     ['Cusco','Flamengo'],
+    'Libertadores':     ['Cusco','Flamengo','Del Valle','Rosario Central','Universidad vs Rosario'],
     'Brasileirao A':    ['Fluminense','Corinthians','Internacional','Vasco','Botafogo','Mirassol','Santos'],
   };
   bets.forEach(b => {
