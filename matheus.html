@@ -596,19 +596,21 @@ function render() {
 
   // for liga, derive from known games
   const ligaHints = {
-    'Bundesliga':       ['Augsburg','Stuttgart','Borussia','Mainz','Bayern'],
-    'Premier League':   ['Arsenal','Chelsea','Liverpool','Bournemouth','Manchester','Sunderland','Brighton','Leeds','Newcastle'],
-    'La Liga':          ['Barcelona','Real Madrid','Sevilla','Valencia','Rayo','Atletico','Girona','Real Betis','Celta','Levante','Getafe'],
-    'Ligue 1':          ['PSG','Marseille','Monaco','Toulouse','Paris FC','Metz'],
-    'Serie A Italia':   ['Inter','Roma','Atalanta','Lecce','Fiorentina'],
-    'Liga Portugal':    ['Sporting','Benfica','Casa Pia'],
-    'Champions e Libertadores': ['PSG vs Bayern e','Bayern e Libertad','Bayern e Universidad'],
-    'Champions League': ['Bayern München','Liverpool','Arsenal','Atletico Madrid'],
-    'Copa do Brasil':   ['Atletico MG','Ceará','Paysandu','Vasco'],
+    'Champions e Libertadores': ['PSG vs Bayern e','Bayern e Libertad','Bayern e Universidad','Atleti Madrid vs Arsenal e','Arsenal e Cerro'],
+    'Champions League': ['Bayern München','Atletico Madrid','Atleti Madrid','Real Madrid vs Bayern','PSG vs Liverpool','Barcelona vs Atletico','Sporting CP vs Arsenal','Real Madrid vs Bayern'],
     'Copa da Alemanha': ['Leverkusen'],
     'Copa da Italia':   ['Atalanta vs Lazio'],
-    'Libertadores':     ['Cusco','Flamengo','Del Valle','Rosario Central','Universidad vs Rosario','Palmeiras','Cerro','Estudiantes'],
-    'Brasileirao A':    ['Fluminense','Corinthians','Internacional','Vasco','Botafogo','Mirassol','Santos'],
+    'Copa do Brasil':   ['Atletico MG','Ceará','Paysandu'],
+    'Libertadores':     ['Cusco','Flamengo','Del Valle','Rosario Central','Universidad vs Rosario','Palmeiras','Cerro','Estudiantes','Libertad'],
+    'Brasileirao A':    ['Fluminense','Corinthians','Internacional','Botafogo','Mirassol','Santos'],
+    'Bundesliga':       ['Augsburg','Stuttgart','Borussia','Mainz','Freiburg','Werder','Hoffenheim'],
+    'Premier League':   ['Chelsea','Bournemouth','Manchester','Sunderland','Brighton','Leeds','Newcastle','Brentford'],
+    'La Liga':          ['Barcelona','Real Madrid','Sevilla','Valencia','Rayo','Atletico','Girona','Real Betis','Celta','Levante','Getafe','Espanyol'],
+    'Ligue 1':          ['PSG','Marseille','Monaco','Toulouse','Paris FC','Metz'],
+    'Serie A Italia':   ['Inter','Roma','Atalanta','Lecce','Fiorentina','Lazio','Udinese','Cagliari','Torino','Milan','Juventus'],
+    'Liga Portugal':    ['Sporting','Benfica','Casa Pia'],
+    'Kings League':     ['Funkbol','Nyvelados','Desimpain','Capim'],
+    'MLS':              ['Inter Miami','New England'],
   };
   bets.forEach(b => {
     let liga = 'Outros';
