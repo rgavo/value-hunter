@@ -470,7 +470,31 @@ function render() {
     pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()+
     ' às '+pad(now.getHours())+':'+pad(now.getMinutes());
 
-  if (n === 0) return; // keep empty state
+  if (n === 0) {
+    document.getElementById('stat-roi').textContent = '0,0%';
+    document.getElementById('stat-roi').className = 'stat-value';
+    document.getElementById('stat-roi-sub').textContent = '0 entradas registradas';
+    document.getElementById('stat-profit').textContent = '+0,00u';
+    document.getElementById('stat-profit').className = 'stat-value positive';
+    document.getElementById('stat-wins').textContent = '0';
+    document.getElementById('stat-losses').textContent = '0';
+    document.getElementById('stat-winrate').textContent = 'taxa de acerto: 0%';
+    document.getElementById('stat-total-bets').textContent = 'total de entradas: 0';
+    document.getElementById('stat-avg-odd').textContent = '0,00';
+    document.getElementById('stat-staked').textContent = '0u';
+    document.getElementById('stat-avg-stake').textContent = 'stake médio: 0u';
+    document.getElementById('donut-win').setAttribute('stroke-dashoffset', 251.2);
+    document.getElementById('donut-loss').setAttribute('stroke-dashoffset', 0);
+    document.getElementById('donut-pct').textContent = '0%';
+    document.getElementById('legend-wins').textContent = 'Acertos: 0';
+    document.getElementById('legend-losses').textContent = 'Erros: 0';
+    document.getElementById('legend-total').textContent = 'Total: 0 entradas';
+    document.getElementById('liga-breakdown').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Sem entradas neste período</div>';
+    document.getElementById('mercado-breakdown').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Sem entradas neste período</div>';
+    document.getElementById('bet-count').textContent = '0 entradas';
+    document.getElementById('bet-tbody').innerHTML = '<tr><td colspan="9"><div class="empty"><div class="empty-icon">📊</div><p>Nenhuma entrada registrada neste período ainda.</p></div></td></tr>';
+    return;
+  }
 
   // compute stats
   let wins=0, losses=0, totalStaked=0, totalProfit=0, oddSum=0;
