@@ -436,6 +436,10 @@ const BETS = [
   { date:'27/04/2026', game:'Espanyol vs Levante',                market:'3+ Defesas Dimitrovic',              odds:1.72, stake:3,   result:'W', confidence:'ALTA'  },
   { date:'27/04/2026', game:'Funkbol vs Nyvelados',               market:'Vitória Funkbol',                    odds:2.12, stake:3,   result:'W', confidence:'ALTA'  },
   { date:'27/04/2026', game:'Desimpain vs Capim',                 market:'Vitória Desimpain',                  odds:1.66, stake:3,   result:'W', confidence:'ALTA'  },
+  { date:'29/04/2026', game:'Atleti Madrid vs Arsenal e Cerro vs Palmeiras',        market:'Dupla Chance Arsenal e Dupla Chance Palmeiras', odds:1.90, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'29/04/2026', game:'Cerro vs Palmeiras',                                   market:'Vitória Palmeiras',                            odds:1.93, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'29/04/2026', game:'Estudiantes vs Flamengo e Cerro vs Palmeiras',         market:'Dupla Chance Flamengo e Under 2.5 Gols',       odds:1.89, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'29/04/2026', game:'Atleti Madrid vs Arsenal',                             market:'Ambas Marcam (Sim)',                           odds:1.91, stake:1, result:'W', confidence:'MÉDIA' },
   { date:'28/04/2026', game:'PSG vs Bayern e Libertad vs Del Valle',          market:'Over 2.5 Gols e X2 Del Valle',       odds:2.02, stake:1, result:'W', confidence:'MÉDIA' },
   { date:'28/04/2026', game:'PSG vs Bayern e Universidad vs Rosario Central', market:'Ambas Marcam (Sim) e Over 1.5 Gols', odds:1.85, stake:1, result:'W', confidence:'MÉDIA' },
   { date:'28/04/2026', game:'Universidad vs Rosario Central',                 market:'Vitória Rosario Central',            odds:1.75, stake:1, result:'W', confidence:'MÉDIA' },
@@ -603,7 +607,7 @@ function render() {
     'Copa do Brasil':   ['Atletico MG','Ceará','Paysandu','Vasco'],
     'Copa da Alemanha': ['Leverkusen'],
     'Copa da Italia':   ['Atalanta vs Lazio'],
-    'Libertadores':     ['Cusco','Flamengo','Del Valle','Rosario Central','Universidad vs Rosario'],
+    'Libertadores':     ['Cusco','Flamengo','Del Valle','Rosario Central','Universidad vs Rosario','Palmeiras','Cerro','Estudiantes'],
     'Brasileirao A':    ['Fluminense','Corinthians','Internacional','Vasco','Botafogo','Mirassol','Santos'],
   };
   bets.forEach(b => {
