@@ -218,6 +218,35 @@
   .empty .empty-icon { font-size:36px; margin-bottom:12px; }
   .empty p { max-width:300px; margin:0 auto; line-height:1.6; }
 
+  /* ── WEEK FILTER ── */
+  .week-filter {
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:28px; flex-wrap:wrap;
+  }
+  .week-filter-label {
+    font-size:11px; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--muted);
+    margin-right:4px;
+  }
+  .wf-btn {
+    padding:8px 20px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg3); color:var(--muted);
+    font-size:12px; font-weight:700; cursor:pointer;
+    transition:all .18s; white-space:nowrap;
+  }
+  .wf-btn:hover { border-color:rgba(0,230,118,.3); color:var(--text); }
+  .wf-btn.active {
+    background:linear-gradient(135deg,var(--green),var(--green2));
+    color:#000; border-color:transparent;
+    box-shadow:0 0 16px rgba(0,230,118,.3);
+  }
+  .week-tag {
+    display:inline-block; font-size:10px; font-weight:700;
+    padding:2px 7px; border-radius:4px; margin-right:4px;
+    background:rgba(79,195,247,.12); color:#4fc3f7;
+    border:1px solid rgba(79,195,247,.2); vertical-align:middle;
+  }
+
   /* ── FOOTER ── */
   footer {
     position:relative; z-index:1;
@@ -243,6 +272,14 @@
 </header>
 
 <main>
+
+  <!-- WEEK FILTER -->
+  <div class="week-filter">
+    <span class="week-filter-label">Período:</span>
+    <button class="wf-btn active" data-filter="all">Todas as semanas</button>
+    <button class="wf-btn" data-filter="week1">Semana 1 · 21–28/04</button>
+    <button class="wf-btn" data-filter="week2">Semana 2 · 29/04–06/05</button>
+  </div>
 
   <!-- STAT CARDS -->
   <div class="stats-grid">
@@ -408,13 +445,23 @@ const BETS = [
 // ENGINE — não precisa editar abaixo
 // ═══════════════════════════════════════════════════════
 function fmtU(n) {
-  // formata em unidades: +0,75u / -1,00u
   return (n >= 0 ? '+' : '-') + Math.abs(n).toFixed(2).replace('.',',') + 'u';
 }
 function pad(n){ return String(n).padStart(2,'0'); }
 
+function getWeek(dateStr) {
+  const [d, m, y] = dateStr.split('/').map(Number);
+  const date = new Date(y, m-1, d);
+  const w1end = new Date(2026, 3, 28); // 28/04/2026
+  return date <= w1end ? 1 : 2;
+}
+
+let currentFilter = 'all';
+
 function render() {
-  const bets = BETS;
+  const bets = currentFilter === 'all'   ? BETS :
+               currentFilter === 'week1' ? BETS.filter(b => getWeek(b.date) === 1) :
+                                           BETS.filter(b => getWeek(b.date) === 2);
   const n = bets.length;
 
   // last update
@@ -565,10 +612,13 @@ function render() {
       'OBS':   '<span class="badge-obs">OBS</span>',
     }[b.confidence] || '';
 
+    const weekTag = currentFilter === 'all'
+      ? `<span class="week-tag">S${getWeek(b.date)}</span>`
+      : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:var(--muted);font-size:12px">${idx}</td>
-      <td style="color:var(--muted);font-size:12px;white-space:nowrap">${b.date||'—'}</td>
+      <td style="color:var(--muted);font-size:12px;white-space:nowrap">${weekTag}${b.date||'—'}</td>
       <td style="font-weight:600">${b.game}</td>
       <td style="color:var(--muted);font-size:12px">${b.market}</td>
       <td style="font-weight:700;color:var(--gold)">${b.odds.toFixed(2).replace('.',',')}</td>
@@ -579,6 +629,16 @@ function render() {
     tbody.appendChild(tr);
   });
 }
+
+// ── filter buttons ──
+document.querySelectorAll('.wf-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.wf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    render();
+  });
+});
 
 render();
 </script>
