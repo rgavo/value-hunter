@@ -269,6 +269,12 @@ const BETS = [
   { date:'29/04/2026', game:'Cerro vs Palmeiras',                                        market:'Vitória Palmeiras',                                              odds:1.93, stake:1, result:'L', confidence:'MÉDIA' },
   { date:'29/04/2026', game:'Estudiantes vs Flamengo e Cerro vs Palmeiras',              market:'Dupla Chance Flamengo e Under 2.5 Gols',                         odds:1.89, stake:1, result:'W', confidence:'MÉDIA' },
   { date:'29/04/2026', game:'Cienciano vs Atletico MG e Estudiantes vs Flamengo',        market:'Over 1.5 Escanteios Cienciano 1º Tempo e Dupla Chance Flamengo', odds:1.71, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'30/04/2026', game:'Braga vs Freiburg e Corinthians vs Peñarol',               market:'Dupla Chance Braga e Under 2.5 Gols',                    odds:1.95, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'30/04/2026', game:'Nottingham Forest x Aston Villa',                          market:'Ambas Marcam (Sim)',                                     odds:1.72, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'30/04/2026', game:'Corinthians vs Peñarol e Nottingham Forest x Aston Villa', market:'Dupla Chance Corinthians e Over 1.5 Gols',               odds:1.68, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'30/04/2026', game:'Bolivar vs Fluminense',                                    market:'Castillo Sofrer Mais de 1 Falta',                        odds:1.93, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'30/04/2026', game:'Bolivar vs Fluminense',                                    market:'Castillo Fazer Mais de 1 Falta',                         odds:2.10, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'30/04/2026', game:'Bolivar vs Fluminense e Rivadavia vs La Guaira',           market:'Over 6.5 Finalizações Bolivar HT e Vitória Rivadavia',   odds:1.72, stake:1, result:'W', confidence:'MÉDIA' },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -358,13 +364,15 @@ function render() {
   }
 
   const ligaHints = {
-    'Libertadores': ['Cerro','Palmeiras','Estudiantes','Flamengo','Cienciano','Atletico MG','Del Valle','Rosario','Libertad','Cusco'],
+    'Europa League e Libertadores': ['Braga vs Freiburg e','Corinthians vs Peñarol e Nottingham'],
+    'Europa League': ['Nottingham Forest','Aston Villa','Braga vs Freiburg'],
+    'Libertadores': ['Cerro','Palmeiras','Estudiantes','Flamengo','Cienciano','Atletico MG','Del Valle','Rosario','Libertad','Cusco','Bolivar','Peñarol','Rivadavia','La Guaira'],
     'Champions League': ['Bayern','Arsenal','Liverpool','Real Madrid','PSG','Atletico Madrid'],
-    'Brasileirao A': ['Fluminense','Corinthians','Internacional','Botafogo','Santos','Bahia','Vasco'],
+    'Brasileirao A': ['Corinthians','Internacional','Botafogo','Santos','Bahia','Vasco'],
     'Premier League': ['Chelsea','Manchester','Brentford','Bournemouth','Brighton','Sunderland'],
     'La Liga': ['Barcelona','Sevilla','Rayo','Girona','Celta','Levante','Getafe','Espanyol','Real Betis'],
     'Serie A Italia': ['Inter','Roma','Atalanta','Lazio','Udinese','Cagliari','Torino','Milan','Juventus'],
-    'Bundesliga': ['Augsburg','Stuttgart','Borussia','Freiburg','Werder'],
+    'Bundesliga': ['Augsburg','Stuttgart','Borussia','Werder'],
     'Ligue 1': ['Marseille','Monaco','Toulouse','Metz'],
   };
 
