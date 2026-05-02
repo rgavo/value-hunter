@@ -135,6 +135,28 @@
   .legend-dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
 
   footer { position:relative;z-index:1;text-align:center;margin-top:48px;font-size:11px;color:var(--muted);padding:0 24px; }
+
+  /* MONTH FILTER */
+  .month-filter { display:flex; align-items:center; gap:10px; margin-bottom:28px; flex-wrap:wrap; }
+  .month-filter-label { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-right:4px; }
+  .mf-btn {
+    padding:8px 20px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg3); color:var(--muted);
+    font-size:12px; font-weight:700; cursor:pointer;
+    transition:all .18s; white-space:nowrap;
+  }
+  .mf-btn:hover { border-color:rgba(0,230,118,.3); color:var(--text); }
+  .mf-btn.active {
+    background:linear-gradient(135deg,var(--green),var(--green2));
+    color:#000; border-color:transparent;
+    box-shadow:0 0 16px rgba(0,230,118,.3);
+  }
+  .month-tag {
+    display:inline-block; font-size:10px; font-weight:700;
+    padding:2px 7px; border-radius:4px; margin-right:4px;
+    background:rgba(79,195,247,.12); color:#4fc3f7;
+    border:1px solid rgba(79,195,247,.2); vertical-align:middle;
+  }
 </style>
 </head>
 <body>
@@ -154,6 +176,14 @@
 </header>
 
 <main>
+
+  <!-- MONTH FILTER -->
+  <div class="month-filter">
+    <span class="month-filter-label">Período:</span>
+    <button class="mf-btn active" data-filter="all">Todos os meses</button>
+    <button class="mf-btn" data-filter="abril">Abril · 01–30/04</button>
+    <button class="mf-btn" data-filter="maio">Maio · 01–31/05</button>
+  </div>
 
   <!-- STAT CARDS -->
   <div class="stats-grid">
@@ -367,6 +397,12 @@ const BETS = [
 function fmtU(n){ return (n>=0?'+':'-')+Math.abs(n).toFixed(2).replace('.',',')+'u'; }
 function pad(n){ return String(n).padStart(2,'0'); }
 
+function getMonth(dateStr) {
+  return parseInt(dateStr.split('/')[1], 10); // returns 4 for April, 5 for May
+}
+
+let currentFilter = 'all';
+
 function getMarketGroup(m) {
   m = m.toLowerCase();
   if (m.includes('ambas marcam'))        return 'Ambas Marcam';
@@ -380,8 +416,34 @@ function getMarketGroup(m) {
   return 'Outros';
 }
 
+function resetStats() {
+  document.getElementById('s-roi').textContent = '0,0%';
+  document.getElementById('s-roi').className = 'stat-value pos';
+  document.getElementById('s-roi-sub').textContent = '0 entradas registradas';
+  document.getElementById('s-profit').textContent = '+0,00u';
+  document.getElementById('s-profit').className = 'stat-value pos';
+  document.getElementById('s-wins').textContent = '0';
+  document.getElementById('s-losses').textContent = '0';
+  document.getElementById('s-wr').textContent = 'taxa: 0,0%';
+  document.getElementById('s-total').textContent = 'total: 0 entradas';
+  document.getElementById('s-avgodds').textContent = '0,00';
+  document.getElementById('s-staked').textContent = '0u';
+  document.getElementById('d-win').setAttribute('stroke-dashoffset', 251.2);
+  document.getElementById('d-loss').setAttribute('stroke-dashoffset', 0);
+  document.getElementById('d-pct').textContent = '0%';
+  document.getElementById('lg-w').textContent = 'Acertos: 0';
+  document.getElementById('lg-l').textContent = 'Erros: 0';
+  document.getElementById('lg-t').textContent = 'Total: 0 entradas';
+  document.getElementById('liga-breakdown').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Sem entradas neste período</div>';
+  document.getElementById('mercado-breakdown').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Sem entradas neste período</div>';
+  document.getElementById('bet-count').textContent = '0 entradas';
+  document.getElementById('bet-tbody').innerHTML = '<tr><td colspan="9"><div style="text-align:center;padding:40px;color:var(--muted)">Nenhuma entrada registrada neste período.</div></td></tr>';
+}
+
 function render() {
-  const bets = BETS;
+  const bets = currentFilter === 'all'   ? BETS :
+               currentFilter === 'abril' ? BETS.filter(b => getMonth(b.date) === 4) :
+                                           BETS.filter(b => getMonth(b.date) === 5);
   const n = bets.length;
 
   // last update
@@ -389,7 +451,7 @@ function render() {
   document.getElementById('last-update-date').textContent =
     pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()+' às '+pad(now.getHours())+':'+pad(now.getMinutes());
 
-  if (!n) return;
+  if (!n) { resetStats(); return; }
 
   // compute
   let wins=0, losses=0, totalProfit=0, totalStaked=0, oddSum=0;
@@ -488,10 +550,13 @@ function render() {
   [...bets].reverse().forEach((b,i) => {
     const idx = n-i;
     const isW = b.result==='W';
+    const monthTag = currentFilter === 'all'
+      ? `<span class="month-tag">${getMonth(b.date)===4?'ABR':'MAI'}</span>`
+      : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:var(--muted)">${idx}</td>
-      <td style="color:var(--muted);white-space:nowrap">${b.date||'—'}</td>
+      <td style="color:var(--muted);white-space:nowrap">${monthTag}${b.date||'—'}</td>
       <td style="white-space:nowrap"><span style="font-size:11px;color:var(--blue)">${b.liga}</span></td>
       <td style="font-weight:600">${b.game}</td>
       <td style="color:var(--muted)">${b.market}</td>
@@ -502,6 +567,16 @@ function render() {
     tbody.appendChild(tr);
   });
 }
+
+// ── filter buttons ──
+document.querySelectorAll('.mf-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    render();
+  });
+});
 
 render();
 </script>
