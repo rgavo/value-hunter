@@ -279,6 +279,10 @@ const BETS = [
   { date:'01/05/2026', game:'Pisa vs Lecce e Girona vs Mallorca',    market:'Dupla Chance Pisa e Over 1.5 Gols',    odds:2.03, stake:1, result:'L', confidence:'MÉDIA' },
   { date:'01/05/2026', game:'Leeds vs Burnley',                      market:'Over 2.5 Gols',                        odds:1.66, stake:1, result:'W', confidence:'MÉDIA' },
   { date:'01/05/2026', game:'Pisa vs Lecce',                         market:'Under 2.5 Gols',                       odds:2.00, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'02/05/2026', game:'Bayern vs Heidenheim e Arsenal vs Fulham',     market:'Vitória Bayern e Vitória Arsenal',    odds:1.76, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'02/05/2026', game:'Cruzeiro vs Atletico MG',                      market:'Vitória Cruzeiro',                   odds:1.95, stake:1, result:'L', confidence:'MÉDIA' },
+  { date:'02/05/2026', game:'Osasuna vs Barcelona',                         market:'Vitória Barcelona',                  odds:1.75, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'02/05/2026', game:'Newcastle vs Brighton e Bayern vs Heidenheim', market:'Ambas Marcam (Sim) e Over 1.5 Gols', odds:1.92, stake:1, result:'W', confidence:'MÉDIA' },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -373,12 +377,15 @@ function render() {
     'Libertadores': ['Cerro','Palmeiras','Estudiantes','Flamengo','Cienciano','Atletico MG','Del Valle','Rosario','Libertad','Cusco','Bolivar','Peñarol','Rivadavia','La Guaira'],
     'Champions League': ['Bayern','Arsenal','Liverpool','Real Madrid','PSG','Atletico Madrid'],
     'Brasileirao A': ['Corinthians','Internacional','Botafogo','Santos','Bahia','Vasco'],
+    'Bundesliga e Premier League': ['Bayern vs Heidenheim e Arsenal','Heidenheim e Arsenal vs Fulham'],
+    'Premier League e Bundesliga': ['Newcastle vs Brighton e Bayern','Brighton e Bayern vs Heidenheim'],
     'Premier League e La Liga': ['Leeds vs Burnley e Girona','Burnley e Girona vs Mallorca'],
     'Serie A Italia e La Liga': ['Pisa vs Lecce e Girona','Lecce e Girona vs Mallorca'],
-    'Premier League': ['Chelsea','Manchester','Brentford','Bournemouth','Brighton','Sunderland','Leeds','Burnley'],
-    'La Liga': ['Barcelona','Sevilla','Rayo','Girona','Celta','Levante','Getafe','Espanyol','Real Betis','Mallorca'],
+    'Premier League': ['Chelsea','Manchester','Brentford','Bournemouth','Brighton','Sunderland','Leeds','Burnley','Fulham','Newcastle'],
+    'La Liga': ['Barcelona','Sevilla','Rayo','Girona','Celta','Levante','Getafe','Espanyol','Real Betis','Mallorca','Osasuna'],
     'Serie A Italia': ['Inter','Roma','Atalanta','Lazio','Udinese','Cagliari','Torino','Milan','Juventus','Pisa','Lecce'],
-    'Bundesliga': ['Augsburg','Stuttgart','Borussia','Werder'],
+    'Bundesliga': ['Augsburg','Stuttgart','Borussia','Werder','Heidenheim'],
+    'Brasileirao A': ['Cruzeiro','Fluminense','Corinthians','Internacional','Botafogo','Santos'],
     'Ligue 1': ['Marseille','Monaco','Toulouse','Metz'],
   };
 
