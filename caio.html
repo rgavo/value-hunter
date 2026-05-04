@@ -282,7 +282,14 @@ const BETS = [
   { date:'02/05/2026', game:'Bayern vs Heidenheim e Arsenal vs Fulham',     market:'Vitória Bayern e Vitória Arsenal',    odds:1.76, stake:1, result:'L', confidence:'MÉDIA' },
   { date:'02/05/2026', game:'Cruzeiro vs Atletico MG',                      market:'Vitória Cruzeiro',                   odds:1.95, stake:1, result:'L', confidence:'MÉDIA' },
   { date:'02/05/2026', game:'Osasuna vs Barcelona',                         market:'Vitória Barcelona',                  odds:1.75, stake:1, result:'W', confidence:'MÉDIA' },
-  { date:'02/05/2026', game:'Newcastle vs Brighton e Bayern vs Heidenheim', market:'Ambas Marcam (Sim) e Over 1.5 Gols', odds:1.92, stake:1, result:'W', confidence:'MÉDIA' },
+  { date:'02/05/2026', game:'Newcastle vs Brighton e Bayern vs Heidenheim',          market:'Ambas Marcam (Sim) e Over 1.5 Gols',          odds:1.92, stake:1,   result:'W', confidence:'MÉDIA' },
+  { date:'02/05/2026', game:'Bournemouth vs Crystal Palace e Sassuolo vs Milan',    market:'Vitória Bournemouth e Vitória Milan',          odds:2.05, stake:1,   result:'L', confidence:'MÉDIA' },
+  { date:'02/05/2026', game:'Borussia M vs Borussia Dortmund',                      market:'Vitória Borussia Dortmund',                    odds:1.90, stake:1,   result:'L', confidence:'MÉDIA' },
+  { date:'02/05/2026', game:'Getafe vs Rayo Vallecano',                             market:'Under 2.5 Gols',                               odds:1.65, stake:1,   result:'W', confidence:'MÉDIA' },
+  { date:'03/05/2026', game:'Juventus vs Verona e Inter vs Parma',                  market:'Vitória Juventus e Vitória Inter',              odds:1.62, stake:1,   result:'L', confidence:'MÉDIA' },
+  { date:'03/05/2026', game:'Flamengo vs Vasco',                                    market:'Ambas Marcam (Sim)',                           odds:1.95, stake:1.5, result:'W', confidence:'ALTA'  },
+  { date:'03/05/2026', game:'Flamengo vs Vasco',                                    market:'Rossi 2+ Defesas e Over 1.5 Gols',             odds:1.70, stake:2,   result:'W', confidence:'ALTA'  },
+  { date:'03/05/2026', game:'Flamengo vs Vasco',                                    market:'Over 5.5 Chutes Flamengo HT e Over 1.5 Gols', odds:1.70, stake:2,   result:'W', confidence:'ALTA'  },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -377,15 +384,16 @@ function render() {
     'Libertadores': ['Cerro','Palmeiras','Estudiantes','Flamengo','Cienciano','Atletico MG','Del Valle','Rosario','Libertad','Cusco','Bolivar','Peñarol','Rivadavia','La Guaira'],
     'Champions League': ['Bayern','Arsenal','Liverpool','Real Madrid','PSG','Atletico Madrid'],
     'Brasileirao A': ['Corinthians','Internacional','Botafogo','Santos','Bahia','Vasco'],
+    'Brasileirao A': ['Flamengo vs Vasco','Cruzeiro vs Atletico','Palmeiras vs Santos','Cruzeiro','Vasco','Fluminense','Corinthians','Internacional','Botafogo'],
     'Bundesliga e Premier League': ['Bayern vs Heidenheim e Arsenal','Heidenheim e Arsenal vs Fulham'],
     'Premier League e Bundesliga': ['Newcastle vs Brighton e Bayern','Brighton e Bayern vs Heidenheim'],
+    'Premier League e Serie A Italia': ['Bournemouth vs Crystal Palace e Sassuolo','Crystal Palace e Sassuolo vs Milan'],
+    'Serie A Italia': ['Inter vs Parma','Juventus vs Verona','Inter','Roma','Atalanta','Lazio','Udinese','Cagliari','Torino','Milan','Juventus','Pisa','Lecce','Sassuolo','Parma','Verona','Fiorentina'],
     'Premier League e La Liga': ['Leeds vs Burnley e Girona','Burnley e Girona vs Mallorca'],
     'Serie A Italia e La Liga': ['Pisa vs Lecce e Girona','Lecce e Girona vs Mallorca'],
     'Premier League': ['Chelsea','Manchester','Brentford','Bournemouth','Brighton','Sunderland','Leeds','Burnley','Fulham','Newcastle'],
     'La Liga': ['Barcelona','Sevilla','Rayo','Girona','Celta','Levante','Getafe','Espanyol','Real Betis','Mallorca','Osasuna'],
-    'Serie A Italia': ['Inter','Roma','Atalanta','Lazio','Udinese','Cagliari','Torino','Milan','Juventus','Pisa','Lecce'],
     'Bundesliga': ['Augsburg','Stuttgart','Borussia','Werder','Heidenheim'],
-    'Brasileirao A': ['Cruzeiro','Fluminense','Corinthians','Internacional','Botafogo','Santos'],
     'Ligue 1': ['Marseille','Monaco','Toulouse','Metz'],
   };
 
