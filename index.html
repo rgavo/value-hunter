@@ -393,6 +393,116 @@
     }
     .faq-a { font-size: 14px; color: var(--muted); line-height: 1.7; }
 
+    /* ── PRICING ── */
+    .pricing { padding: 96px 0; text-align: center; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      margin-top: 56px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .plan-card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 36px 28px;
+      position: relative;
+      transition: border-color 0.2s, transform 0.2s;
+      text-align: center;
+    }
+    .plan-card:hover {
+      border-color: var(--border);
+      transform: translateY(-4px);
+    }
+    .plan-card.featured {
+      border: 2px solid var(--green);
+      box-shadow: 0 0 40px rgba(0,230,118,0.15);
+    }
+    .plan-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .plan-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .plan-price {
+      font-size: 52px;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .plan-price sup {
+      font-size: 22px;
+      font-weight: 700;
+      vertical-align: top;
+      margin-top: 10px;
+      display: inline-block;
+    }
+    .plan-period {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .plan-features {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 32px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .plan-features li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .plan-features li:last-child { border-bottom: none; }
+    .plan-features li .check { color: var(--green); flex-shrink: 0; }
+    .plan-btn {
+      display: block;
+      width: 100%;
+      padding: 14px 0;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+      letter-spacing: 0.3px;
+    }
+    .plan-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .plan-btn.primary {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: #000;
+      box-shadow: 0 0 28px rgba(0,230,118,0.3);
+    }
+    .plan-btn.secondary {
+      background: transparent;
+      color: var(--green);
+      border: 1px solid var(--border);
+    }
+    .plan-btn.secondary:hover { background: var(--green-glow); }
+
     /* ── CTA FINAL ── */
     .cta-final {
       padding: 100px 0;
@@ -455,7 +565,7 @@
 <nav>
   <div class="inner">
     <div class="logo">Value<span>Hunter</span></div>
-    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="nav-cta" target="_blank" rel="noopener">Quero Entrar</a>
+    <a href="#planos" class="nav-cta">Ver Planos</a>
   </div>
 </nav>
 
@@ -484,7 +594,7 @@
         Edge mínimo por aposta
       </div>
     </div>
-    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="cta-btn" target="_blank" rel="noopener">Quero receber o relatório diário →</a>
+    <a href="#planos" class="cta-btn">Ver planos e assinar →</a>
     <p class="disclaimer-hero">Resultado de Abril/2026. Resultados passados não garantem retornos futuros.</p>
   </div>
 </section>
@@ -720,13 +830,69 @@
   </div>
 </section>
 
+<!-- PRICING -->
+<section class="pricing" id="planos">
+  <div class="container">
+    <div class="tag">Planos</div>
+    <h2 class="section-title">Escolha como quer receber.</h2>
+    <p class="section-sub">Todos os planos incluem o relatório completo com edge calculado, stake sugerido e justificativa de cada entrada.</p>
+    <div class="pricing-grid">
+
+      <!-- Diário -->
+      <div class="plan-card">
+        <div class="plan-name">Diário</div>
+        <div class="plan-price"><sup>R$</sup>12<span style="font-size:28px;font-weight:900">,90</span></div>
+        <div class="plan-period">por dia</div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Relatório PDF do dia</li>
+          <li><span class="check">✓</span> Edge e stake calculados</li>
+          <li><span class="check">✓</span> Entregue antes das 8h</li>
+          <li><span class="check">✓</span> WhatsApp, e-mail ou Telegram</li>
+        </ul>
+        <a href="https://pay.kiwify.com.br/01nKnMo" class="plan-btn secondary" target="_blank" rel="noopener">Comprar 1 dia</a>
+      </div>
+
+      <!-- Semanal -->
+      <div class="plan-card">
+        <div class="plan-name">Semanal</div>
+        <div class="plan-price"><sup>R$</sup>49<span style="font-size:28px;font-weight:900">,90</span></div>
+        <div class="plan-period">por semana · R$ 7,13/dia</div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> 7 relatórios completos</li>
+          <li><span class="check">✓</span> Edge e stake calculados</li>
+          <li><span class="check">✓</span> Entregue antes das 8h</li>
+          <li><span class="check">✓</span> WhatsApp, e-mail ou Telegram</li>
+        </ul>
+        <a href="https://pay.kiwify.com.br/t4bxA6o" class="plan-btn secondary" target="_blank" rel="noopener">Assinar semanal</a>
+      </div>
+
+      <!-- Mensal — featured -->
+      <div class="plan-card featured">
+        <div class="plan-badge">⚡ Melhor valor</div>
+        <div class="plan-name">Mensal</div>
+        <div class="plan-price"><sup>R$</sup>97<span style="font-size:28px;font-weight:900">,00</span></div>
+        <div class="plan-period">por mês · R$ 3,23/dia</div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> 30 relatórios completos</li>
+          <li><span class="check">✓</span> Edge e stake calculados</li>
+          <li><span class="check">✓</span> Entregue antes das 8h</li>
+          <li><span class="check">✓</span> WhatsApp, e-mail ou Telegram</li>
+          <li><span class="check">✓</span> Acesso ao dashboard de resultados</li>
+        </ul>
+        <a href="https://pay.kiwify.com.br/PpjUqq6" class="plan-btn primary" target="_blank" rel="noopener">Assinar mensal →</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- CTA FINAL -->
 <section class="cta-final" id="cta">
   <div class="container">
     <div class="tag">Comece agora</div>
     <h2 class="section-title">Pare de apostar no escuro.<br><span class="green">Aposte com edge.</span></h2>
     <p>Receba diariamente as apostas com maior probabilidade de valor real no futebol, calculadas quantitativamente e prontas para executar.</p>
-    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="cta-btn" target="_blank" rel="noopener">Quero receber o Value Hunter →</a>
+    <a href="#planos" class="cta-btn">Ver planos e assinar →</a>
     <p class="risk-note">Aposte com responsabilidade. Jogo pode ser viciante. Resultados passados não garantem lucros futuros.</p>
   </div>
 </section>
