@@ -30,6 +30,46 @@
       overflow-x: hidden;
     }
 
+    /* ── TECH BACKGROUND ── */
+    #tech-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #tech-bg canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    /* Subtle vignette — much more transparent so grid shows through */
+    #tech-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 60% 50% at 50% 38%,
+          rgba(10,14,20,0.55) 0%,
+          transparent 70%
+        ),
+        radial-gradient(ellipse 100% 80% at 50% 30%,
+          transparent 0%,
+          rgba(10,14,20,0.08) 60%,
+          rgba(10,14,20,0.30) 100%
+        );
+    }
+    /* All sections need z-index above bg */
+    nav, section, .proof-bar, footer { position: relative; z-index: 1; }
+    /* Make section backgrounds semi-transparent so grid shows through */
+    .hero { background: transparent !important; }
+    .proof-bar { background: rgba(17, 24, 32, 0.75) !important; backdrop-filter: blur(8px); }
+    .what-is, .results, .diff, .cta-final { background: transparent !important; }
+    .how, .get, .faq { background: rgba(17, 24, 32, 0.7) !important; backdrop-filter: blur(8px); }
+    footer { background: rgba(17, 24, 32, 0.85) !important; backdrop-filter: blur(8px); }
+    nav { background: rgba(10, 14, 20, 0.85) !important; backdrop-filter: blur(12px); }
+
     /* ── UTILITY ── */
     .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
     .tag {
@@ -237,26 +277,6 @@
     .step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
     .step p { font-size: 14px; color: var(--muted); }
 
-    /* ── ANIMATION ── */
-    .demo { padding: 96px 0; text-align: center; }
-    .demo-frame-wrap {
-      position: relative;
-      margin: 52px auto 0;
-      max-width: 880px;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      box-shadow: 0 0 80px rgba(0, 230, 118, 0.12), 0 30px 80px rgba(0,0,0,0.5);
-      background: #0c0f16;
-      aspect-ratio: 16 / 9;
-    }
-    .demo-frame-wrap iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
-
     /* ── RESULTS ── */
     .results { padding: 96px 0; text-align: center; }
     .results-highlight {
@@ -373,211 +393,6 @@
     }
     .faq-a { font-size: 14px; color: var(--muted); line-height: 1.7; }
 
-    /* ── PRICING ── */
-    .pricing { padding: 96px 0; background: var(--bg2); text-align: center; }
-    .pricing-grid {
-      display: flex;
-      gap: 24px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 52px;
-      align-items: stretch;
-    }
-    .price-card {
-      background: var(--card);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
-      padding: 36px 32px;
-      width: 280px;
-      text-align: center;
-      position: relative;
-      transition: transform 0.2s, border-color 0.2s;
-      display: flex;
-      flex-direction: column;
-    }
-    .price-card:hover { transform: translateY(-4px); border-color: var(--border); }
-    .price-card.featured {
-      border-color: var(--green);
-      background: linear-gradient(160deg, rgba(0,230,118,0.07) 0%, var(--card) 60%);
-      transform: scale(1.04);
-    }
-    .price-card.featured:hover { transform: scale(1.04) translateY(-4px); }
-    .featured-badge {
-      position: absolute;
-      top: -14px; left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, var(--green), var(--green-dark));
-      color: #000;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      padding: 5px 16px;
-      border-radius: 100px;
-      white-space: nowrap;
-    }
-    .price-label {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 16px;
-    }
-    .price-value {
-      font-size: 52px;
-      font-weight: 900;
-      line-height: 1;
-      color: var(--text);
-    }
-    .price-value span { font-size: 22px; font-weight: 700; vertical-align: super; margin-right: 2px; color: var(--muted); }
-    .price-period {
-      font-size: 13px;
-      color: var(--muted);
-      margin: 6px 0 24px;
-    }
-    .price-features {
-      list-style: none;
-      text-align: left;
-      margin-bottom: 32px;
-      flex: 1;
-    }
-    .price-features li {
-      font-size: 14px;
-      color: var(--muted);
-      padding: 7px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .price-features li:last-child { border-bottom: none; }
-    .price-features .pcheck { color: var(--green); flex-shrink: 0; }
-    .price-btn {
-      display: block;
-      padding: 14px 0;
-      border-radius: 8px;
-      font-weight: 800;
-      font-size: 15px;
-      text-decoration: none;
-      transition: opacity 0.2s, transform 0.2s;
-      margin-top: auto;
-    }
-    .price-btn.outline {
-      border: 2px solid var(--border);
-      color: var(--green);
-    }
-    .price-btn.outline:hover { border-color: var(--green); opacity: 0.85; }
-    .price-btn.solid {
-      background: linear-gradient(135deg, var(--green), var(--green-dark));
-      color: #000;
-      box-shadow: 0 0 28px rgba(0,230,118,0.3);
-    }
-    .price-btn.solid:hover { opacity: 0.9; transform: translateY(-1px); }
-    .pix-note {
-      margin-top: 28px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .pix-note strong { color: var(--green); }
-
-    /* ── PROMO FLASH ── */
-    .promo-badge {
-      position: absolute;
-      top: -14px; left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #ff4d4d, #c0392b);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      padding: 5px 16px;
-      border-radius: 100px;
-      white-space: nowrap;
-      animation: pulse-badge 1.4s ease-in-out infinite;
-    }
-    @keyframes pulse-badge {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,77,0.5); }
-      50%       { box-shadow: 0 0 0 7px rgba(255,77,77,0); }
-    }
-    .price-old {
-      font-size: 15px;
-      color: var(--muted);
-      text-decoration: line-through;
-      margin-bottom: 2px;
-    }
-    .price-card.promo {
-      border-color: #ff4d4d;
-      background: linear-gradient(160deg, rgba(255,77,77,0.07) 0%, var(--card) 60%);
-      transform: scale(1.04);
-    }
-    .price-card.promo:hover { transform: scale(1.04) translateY(-4px); }
-    .price-btn.promo-btn {
-      background: linear-gradient(135deg, #ff4d4d, #c0392b);
-      color: #fff;
-      box-shadow: 0 0 28px rgba(255,77,77,0.35);
-    }
-    .price-btn.promo-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-    .countdown-wrap {
-      margin: 14px 0 4px;
-      background: rgba(255,77,77,0.1);
-      border: 1px solid rgba(255,77,77,0.25);
-      border-radius: 8px;
-      padding: 10px 12px;
-    }
-    .countdown-label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: #ff6b6b;
-      margin-bottom: 6px;
-    }
-    .countdown-digits {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      align-items: center;
-    }
-    .cd-block {
-      background: rgba(0,0,0,0.3);
-      border-radius: 6px;
-      padding: 5px 10px;
-      text-align: center;
-      min-width: 48px;
-    }
-    .cd-num {
-      font-size: 22px;
-      font-weight: 900;
-      color: #ff6b6b;
-      line-height: 1;
-      display: block;
-      font-variant-numeric: tabular-nums;
-    }
-    .cd-unit {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-top: 2px;
-      display: block;
-    }
-    .cd-sep {
-      font-size: 20px;
-      font-weight: 900;
-      color: #ff6b6b;
-      line-height: 1;
-      margin-bottom: 12px;
-    }
-    .expired-msg {
-      font-size: 13px;
-      color: var(--muted);
-      font-style: italic;
-      padding: 8px 0;
-    }
-
     /* ── CTA FINAL ── */
     .cta-final {
       padding: 100px 0;
@@ -634,12 +449,13 @@
   </style>
 </head>
 <body>
+<div id="tech-bg"><canvas id="bg-canvas"></canvas></div>
 
 <!-- NAV -->
 <nav>
   <div class="inner">
     <div class="logo">Value<span>Hunter</span></div>
-    <a href="#pricing" class="nav-cta" ">Quero Entrar</a>
+    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="nav-cta" target="_blank" rel="noopener">Quero Entrar</a>
   </div>
 </nav>
 
@@ -656,23 +472,19 @@
     </p>
     <div class="hero-badges">
       <div class="badge">
-        <span class="num">+14,1%</span>
-        ROI acumulado
+        <span class="num">+27,5%</span>
+        ROI no 1º mês
       </div>
       <div class="badge">
-        <span class="num">+12,56u</span>
-        Lucro em unidades
-      </div>
-      <div class="badge">
-        <span class="num">1,89</span>
+        <span class="num">1,94</span>
         Odd média das entradas
       </div>
       <div class="badge">
-        <span class="num">≥4%</span>
+        <span class="num">≥5%</span>
         Edge mínimo por aposta
       </div>
     </div>
-    <a href="#pricing" class="cta-btn" ">Quero receber o relatório diário →</a>
+    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="cta-btn" target="_blank" rel="noopener">Quero receber o relatório diário →</a>
     <p class="disclaimer-hero">Resultado do período de teste (1 mês). Resultados passados não garantem retornos futuros.</p>
   </div>
 </section>
@@ -681,23 +493,19 @@
 <div class="proof-bar">
   <div class="inner">
     <div class="proof-item">
-      <span class="pnum">9,7%</span>
-      <span class="plabel">ROI acumulado</span>
+      <span class="pnum">27,5%</span>
+      <span class="plabel">ROI no mês de teste</span>
     </div>
     <div class="proof-item">
-      <span class="pnum">+12,56u</span>
-      <span class="plabel">Lucro em unidades</span>
-    </div>
-    <div class="proof-item">
-      <span class="pnum">1,89</span>
+      <span class="pnum">1,94</span>
       <span class="plabel">Odd média das entradas</span>
     </div>
     <div class="proof-item">
-      <span class="pnum">2–6</span>
-      <span class="plabel">Apostas por dia</span>
+      <span class="pnum">1–5</span>
+      <span class="plabel">Apostas por dia (só quando há edge)</span>
     </div>
     <div class="proof-item">
-      <span class="pnum">≥4%</span>
+      <span class="pnum">≥5%</span>
       <span class="plabel">Edge mínimo calculado vs Pinnacle</span>
     </div>
   </div>
@@ -765,18 +573,6 @@
   </div>
 </section>
 
-<!-- DEMO ANIMATION -->
-<section class="demo">
-  <div class="container">
-    <div class="tag">Veja funcionando</div>
-    <h2 class="section-title">A IA trabalhando em tempo real</h2>
-    <p class="section-sub">Do momento em que os dados são coletados até o relatório chegar na sua mão — veja cada etapa do processo.</p>
-    <div class="demo-frame-wrap">
-      <iframe src="value-hunter-animation.html" scrolling="no" allowtransparency="true"></iframe>
-    </div>
-  </div>
-</section>
-
 <!-- RESULTS -->
 <section class="results">
   <div class="container">
@@ -785,19 +581,15 @@
     <p class="section-sub">O período de validação mostrou que o método funciona. Esses são os resultados do primeiro mês de operação.</p>
     <div class="results-highlight">
       <div class="rh-item">
-        <span class="rh-num">+14,1%</span>
-        <span class="rh-label">ROI acumulado</span>
+        <span class="rh-num">+27,5%</span>
+        <span class="rh-label">ROI total no mês</span>
       </div>
       <div class="rh-item">
-        <span class="rh-num">+12,56u</span>
-        <span class="rh-label">Lucro em unidades</span>
-      </div>
-      <div class="rh-item">
-        <span class="rh-num">1,89</span>
+        <span class="rh-num">1,94</span>
         <span class="rh-label">Odd média das entradas</span>
       </div>
       <div class="rh-item">
-        <span class="rh-num">≥4%</span>
+        <span class="rh-num">≥5%</span>
         <span class="rh-label">Edge mínimo por aposta</span>
       </div>
     </div>
@@ -815,7 +607,7 @@
     <ul class="get-list">
       <li>
         <span class="check">✓</span>
-        <div><strong>Relatório PDF diário</strong><br><span>Enviado toda manhã antes das 8h com as melhores oportunidades do dia, odds, edge calculado, CLV potencial e nível de confiança.</span></div>
+        <div><strong>Relatório PDF diário</strong><br><span>Enviado toda manhã com as melhores oportunidades do dia seguinte, já com odds, edge calculado e stake sugerido.</span></div>
       </li>
       <li>
         <span class="check">✓</span>
@@ -823,7 +615,7 @@
       </li>
       <li>
         <span class="check">✓</span>
-        <div><strong>Nível de confiança por aposta</strong><br><span>Apostas classificadas em três níveis — ALTA, MÉDIA ou OBSERVAÇÃO — com base no edge calculado e número de ancoragens quantitativas.</span></div>
+        <div><strong>Nível de confiança + stake sugerido</strong><br><span>Apostas classificadas como ALTA ou MÉDIA confiança, com stake proporcional ao edge.</span></div>
       </li>
       <li>
         <span class="check">✓</span>
@@ -898,83 +690,29 @@
     <div class="faq-list">
       <div class="faq-item">
         <div class="faq-q">Quantas apostas vêm por dia?</div>
-        <div class="faq-a">Entre 2 e 6 apostas por dia, com média esperada de 3 a 4 entradas. A nova versão do modelo é mais calibrada — filtros anteriores estavam rejeitando apostas que acertavam. Sempre com edge quantitativo comprovado.</div>
+        <div class="faq-a">Entre 0 e 5. A média esperada é de 1 a 3 apostas nos dias viáveis. Se não houver edge real no dia, o relatório sai vazio — e isso é intencional. Forçar apostas destrói o ROI a longo prazo.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q">Precisa ter experiência com apostas?</div>
-        <div class="faq-a">Não. O relatório já vem com a aposta exata, o mercado, a odd e a justificativa quantitativa. Você aposta na casa de sua preferência — Bet365, Sportingbet, Betano, ou qualquer outra que ofereça a odd indicada.</div>
+        <div class="faq-a">Não. O relatório já vem com a aposta exata, o mercado, a odd, o stake sugerido e a justificativa. Basta seguir as instruções na Bet365.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Qual banca inicial é recomendada?</div>
+        <div class="faq-a">O sistema foi desenhado para stakes de R$ 30 a R$ 50 por aposta (variando por confiança). Uma banca inicial de R$ 500 a R$ 1.000 é o suficiente para seguir todas as recomendações com conforto.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q">Como recebo o relatório?</div>
-        <div class="faq-a">O PDF é enviado diariamente antes das 8h, para que você tenha tempo de apostar antes do kick-off. Após a compra, você recebe o seu primeiro relatório no dia seguinte.</div>
+        <div class="faq-a">O PDF é enviado diariamente por e-mail ou WhatsApp (a confirmar), sempre antes das 9h, para que você tenha tempo de apostar antes do kick-off.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q">Quais ligas são cobertas?</div>
-        <div class="faq-a">Ligas prioritárias: Bundesliga, Premier League, La Liga, Serie A, Ligue 1, Primeira Liga, Champions League, Europa League e Conference League — além de Brasileirão A/B, Copa do Brasil, Libertadores e Sul-Americana. Em dias com menos jogos nessas ligas, o modelo busca valor também em ligas secundárias como Eredivisie, MLS, Argentina e Championship, com critério de edge mais rigoroso.</div>
+        <div class="faq-a">Principais europeias (Bundesliga, Premier League, La Liga, Serie A, Ligue 1, Primeira Liga) e brasileiras (Brasileirão A/B, Copa do Brasil, Libertadores, Sul-Americana). Foco absoluto nas ligas com mais dados disponíveis.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q">Resultados passados garantem lucro futuro?</div>
-        <div class="faq-a">Não. O ROI de 14,1% foi obtido no primeiro mês de teste. Apostas esportivas envolvem risco e resultados passados não garantem retornos futuros. Aposte apenas o que pode perder.</div>
+        <div class="faq-a">Não. O ROI de 27,5% foi obtido no primeiro mês de teste. Apostas esportivas envolvem risco e resultados passados não garantem retornos futuros. Aposte apenas o que pode perder.</div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- PRICING -->
-<section class="pricing" id="pricing">
-  <div class="container">
-    <div class="tag">Planos</div>
-    <h2 class="section-title">Escolha seu plano</h2>
-    <p class="section-sub">Pague via PIX ou cartão de crédito. Acesso imediato após a confirmação.</p>
-    <div class="pricing-grid">
-
-      <!-- DIÁRIO -->
-      <div class="price-card">
-        <div class="price-label">Diário</div>
-        <div class="price-value"><span>R$</span>12<small style="font-size:28px">,90</small></div>
-        <div class="price-period">acesso por 1 dia</div>
-        <ul class="price-features">
-          <li><span class="pcheck">✓</span> Relatório PDF do dia</li>
-          <li><span class="pcheck">✓</span> Edge e probabilidade calculados</li>
-          <li><span class="pcheck">✓</span> Nível de confiança por aposta</li>
-          <li><span class="pcheck">✓</span> PIX ou cartão</li>
-        </ul>
-        <a href="https://pay.kiwify.com.br/01nKnMo" class="price-btn outline" target="_blank" rel="noopener">Comprar acesso diário</a>
-      </div>
-
-      <!-- SEMANAL -->
-      <div class="price-card featured">
-        <div class="featured-badge">⭐ Mais popular</div>
-        <div class="price-label">Semanal</div>
-        <div class="price-value"><span>R$</span>49<small style="font-size:28px">,90</small></div>
-        <div class="price-period">acesso por 7 dias</div>
-        <ul class="price-features">
-          <li><span class="pcheck">✓</span> 7 relatórios PDF</li>
-          <li><span class="pcheck">✓</span> Edge e probabilidade calculados</li>
-          <li><span class="pcheck">✓</span> Nível de confiança por aposta</li>
-          <li><span class="pcheck">✓</span> Meta-análise semanal inclusa</li>
-          <li><span class="pcheck">✓</span> PIX ou cartão</li>
-        </ul>
-        <a href="https://pay.kiwify.com.br/t4bxA6o" class="price-btn solid" target="_blank" rel="noopener">Comprar acesso semanal</a>
-      </div>
-
-      <!-- MENSAL -->
-      <div class="price-card">
-        <div class="price-label">Mensal</div>
-        <div class="price-value"><span>R$</span>97<small style="font-size:28px">,00</small></div>
-        <div class="price-period">acesso por 30 dias</div>
-        <ul class="price-features">
-          <li><span class="pcheck">✓</span> ~30 relatórios PDF</li>
-          <li><span class="pcheck">✓</span> Edge e probabilidade calculados</li>
-          <li><span class="pcheck">✓</span> Nível de confiança por aposta</li>
-          <li><span class="pcheck">✓</span> Meta-análise contínua</li>
-          <li><span class="pcheck">✓</span> PIX ou cartão</li>
-        </ul>
-        <a href="https://pay.kiwify.com.br/PpjUqq6" class="price-btn outline" target="_blank" rel="noopener">Comprar acesso mensal</a>
-      </div>
-
-    </div>
-    <p class="pix-note">💚 <strong>PIX recomendado</strong> — aprovação instantânea. Cartão aceito sem parcelamento.</p>
   </div>
 </section>
 
@@ -984,7 +722,7 @@
     <div class="tag">Comece agora</div>
     <h2 class="section-title">Pare de apostar no escuro.<br><span class="green">Aposte com edge.</span></h2>
     <p>Receba diariamente as apostas com maior probabilidade de valor real no futebol, calculadas quantitativamente e prontas para executar.</p>
-    <a href="#pricing" class="cta-btn" ">Ver planos →</a>
+    <a href="https://wa.me/5521997515181?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Value%20Hunter!" class="cta-btn" target="_blank" rel="noopener">Quero receber o Value Hunter →</a>
     <p class="risk-note">Aposte com responsabilidade. Jogo pode ser viciante. Resultados passados não garantem lucros futuros.</p>
   </div>
 </section>
@@ -1002,56 +740,199 @@
 </footer>
 
 <script>
-  (function() {
-    // Deadline: hoje 23h59m59s no horário local do visitante
-    var now    = new Date();
-    var target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+// ── Tech background: animated grid + floating data particles + pulse rings ──
+(function () {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  const GREEN = '#00e676';
+  const GREEN_DIM = 'rgba(0,230,118,';
 
-    function pad(n) { return String(n).padStart(2, '0'); }
+  let W, H, dpr;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight; // fixed viewport only
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
 
-    function tick() {
-      var diff = target - Date.now();
+  // ── Grid ──────────────────────────────────────────────────
+  function drawGrid(t) {
+    const spacing = 48;
+    const cols = Math.ceil(W / spacing) + 1;
+    const rows = Math.ceil(H / spacing) + 1;
+    // Subtle slow pan
+    const offX = (t * 4) % spacing;
+    const offY = (t * 2) % spacing;
 
-      if (diff <= 0) {
-        // Promoção encerrada — reverte card para versão normal
-        var card = document.getElementById('semanal-card');
-        var btn  = document.getElementById('semanal-btn');
-        if (card) {
-          card.className = 'price-card featured';
-          var badge = card.querySelector('.promo-badge');
-          if (badge) badge.remove();
-          var oldPrice = card.querySelector('.price-old');
-          if (oldPrice) oldPrice.remove();
-          var priceVal = card.querySelector('.price-value');
-          if (priceVal) priceVal.innerHTML = '<span>R$</span>49<small style="font-size:28px">,90</small>';
-          var cdWrap = card.querySelector('.countdown-wrap');
-          if (cdWrap) cdWrap.innerHTML = '<p class="expired-msg">Promoção encerrada</p>';
-        }
-        if (btn) {
-          btn.href = 'https://pay.kiwify.com.br/t4bxA6o';
-          btn.className = 'price-btn solid';
-          btn.textContent = 'Comprar acesso semanal';
-        }
-        return;
-      }
-
-      var h = Math.floor(diff / 3600000);
-      var m = Math.floor((diff % 3600000) / 60000);
-      var s = Math.floor((diff % 60000) / 1000);
-
-      var elH = document.getElementById('cd-h');
-      var elM = document.getElementById('cd-m');
-      var elS = document.getElementById('cd-s');
-      if (elH) elH.textContent = pad(h);
-      if (elM) elM.textContent = pad(m);
-      if (elS) elS.textContent = pad(s);
-
-      setTimeout(tick, 1000);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,230,118,0.13)';
+    ctx.lineWidth = 0.75;
+    ctx.beginPath();
+    for (let c = 0; c <= cols; c++) {
+      const x = c * spacing - offX;
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
     }
+    for (let r = 0; r <= rows; r++) {
+      const y = r * spacing - offY;
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+    }
+    ctx.stroke();
 
-    tick();
-  })();
+    // Glowing intersection nodes — only a subset, pulsing
+    for (let c = 0; c <= cols; c++) {
+      for (let r = 0; r <= rows; r++) {
+        // Only every 4th intersection to avoid clutter
+        if ((c + r) % 4 !== 0) continue;
+        const x = c * spacing - offX;
+        const y = r * spacing - offY;
+        const pulse = 0.4 + 0.6 * Math.sin(t * 1.2 + c * 0.7 + r * 0.5);
+        const a = 0.18 * pulse;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,230,118,${a.toFixed(3)})`;
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  // ── Particles (floating data tokens) ─────────────────────
+  const TOKENS = [
+    'xG=1.82','CLV+2.1%','edge+11.4%','Pinnacle','01001101',
+    'prob=0.459','sharp↓','ODD 2.05','Over 9.5','xGA=0.94',
+    'ROI+27.5%','0.413','FAIR 1.88','sample=31','k-line',
+    '0xF3A2','edge≥5%','BET365','CLV>0','canonical',
+    'BTTS','sot=6.1','cards/90','movement','vig=4.4%',
+  ];
+  const particles = Array.from({ length: 65 }, (_, i) => {
+    const rng = mulberry(i * 137 + 17);
+    return {
+      x: rng() * 1, y: rng() * 1,   // normalized 0-1
+      vx: (rng() - 0.5) * 0.00006,
+      vy: -(0.00005 + rng() * 0.00012), // drift upward
+      alpha: 0.18 + rng() * 0.22,
+      size: 9 + rng() * 3,
+      token: TOKENS[i % TOKENS.length],
+      phase: rng() * Math.PI * 2,
+    };
+  });
+
+  function mulberry(seed) {
+    return function () {
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function drawParticles(t) {
+    ctx.save();
+    ctx.font = '10px "JetBrains Mono", "SF Mono", ui-monospace, monospace';
+    ctx.textBaseline = 'middle';
+    particles.forEach(p => {
+      // Animate position — loop vertically
+      const px = ((p.x + p.vx * t * 1000) % 1 + 1) % 1 * W;
+      const py = ((p.y + p.vy * t * 1000) % 1 + 1) % 1 * H;
+      const pulse = 0.7 + 0.3 * Math.sin(t * 0.8 + p.phase);
+      const alpha = p.alpha * pulse;
+      ctx.fillStyle = `rgba(0,230,118,${alpha.toFixed(3)})`;
+      ctx.fillText(p.token, px, py);
+    });
+    ctx.restore();
+  }
+
+  // ── Pulse rings ───────────────────────────────────────────
+  // 3 slow expanding rings from different origins, looping
+  const RING_ORIGINS = [
+    { nx: 0.25, ny: 0.18 },
+    { nx: 0.75, ny: 0.45 },
+    { nx: 0.5,  ny: 0.72 },
+  ];
+  const RING_PERIOD = 6; // seconds per ring cycle
+
+  function drawRings(t) {
+    ctx.save();
+    RING_ORIGINS.forEach((o, i) => {
+      const phase = ((t / RING_PERIOD + i / 3) % 1);
+      const maxR = Math.max(W, H) * 0.38;
+      const r = phase * maxR;
+      const alpha = (1 - phase) * 0.22;
+      if (alpha < 0.005) return;
+      const grd = ctx.createRadialGradient(o.nx * W, o.ny * H, r * 0.7, o.nx * W, o.ny * H, r);
+      grd.addColorStop(0, `rgba(0,230,118,0)`);
+      grd.addColorStop(0.85, `rgba(0,230,118,${(alpha * 0.6).toFixed(3)})`);
+      grd.addColorStop(1, `rgba(0,230,118,0)`);
+      ctx.beginPath();
+      ctx.arc(o.nx * W, o.ny * H, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0,230,118,${alpha.toFixed(3)})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // ── Flowing data lines (diagonal streaks) ─────────────────
+  const STREAKS = Array.from({ length: 12 }, (_, i) => {
+    const rng = mulberry(i * 211 + 99);
+    return {
+      x0n: rng(), y0n: rng(),
+      angle: (rng() - 0.5) * 0.6,
+      speed: 0.00008 + rng() * 0.00015,
+      len: 80 + rng() * 140,
+      alpha: 0.15 + rng() * 0.22,
+      phase: rng() * 100,
+    };
+  });
+
+  function drawStreaks(t) {
+    ctx.save();
+    STREAKS.forEach(s => {
+      const progress = ((t * s.speed * 1000 + s.phase) % 1 + 1) % 1;
+      const cx = s.x0n * W;
+      const cy = s.y0n * H;
+      const x1 = cx + Math.cos(s.angle) * (progress - 0.5) * W * 0.8;
+      const y1 = cy + Math.sin(s.angle) * (progress - 0.5) * H * 0.5;
+      const x2 = x1 + Math.cos(s.angle) * s.len;
+      const y2 = y1 + Math.sin(s.angle) * s.len;
+      const grd = ctx.createLinearGradient(x1, y1, x2, y2);
+      grd.addColorStop(0, 'rgba(0,230,118,0)');
+      grd.addColorStop(0.5, `rgba(0,230,118,${s.alpha.toFixed(3)})`);
+      grd.addColorStop(1, 'rgba(0,230,118,0)');
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = grd;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // ── Main loop ─────────────────────────────────────────────
+  let start = null;
+  function frame(ts) {
+    if (!start) start = ts;
+    const t = (ts - start) / 1000;
+
+    ctx.clearRect(0, 0, W, H);
+    drawGrid(t);
+    drawStreaks(t);
+    drawRings(t);
+    drawParticles(t);
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(frame);
+})();
 </script>
-
 </body>
 </html>
